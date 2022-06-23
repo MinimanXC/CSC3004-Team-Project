@@ -60,15 +60,3 @@ class LinkedList:
                 tempArr.append(temp.data)
                 temp = temp.prev
             return tempArr
-
-
-if __name__ == '__main__':
-    list = LinkedList()
-    list.insert(0)
-    list.insert(1)
-    list.insert(2)
-    list.insert(3)
-    print("The linked list is of size: ", list.size())
-    list.printList()
-
-
