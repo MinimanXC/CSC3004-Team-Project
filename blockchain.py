@@ -81,7 +81,6 @@ class Blockchain():
         return self.difficulty
 
     def addBlock(self, block: Block) -> None:
-        """ Append new block to the chain. """
         if self.chain.size() == 0:
             self.mineBlock(block)
             self.chain.insert(block)
@@ -93,7 +92,6 @@ class Blockchain():
 
 
     def mineBlock(self, block: Block) -> None:
-        """ Mine a new block"""
         block.mine(self.difficulty) # Getting difficulty issues because im not updating the block id at this point in time
 
     def isValid(self) -> bool:
