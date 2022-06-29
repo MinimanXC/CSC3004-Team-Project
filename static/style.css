@@ -1,0 +1,53 @@
+  .navbar {
+    background-color: darkslategray;
+  }
+  body {
+    background-color: gainsboro;
+  }
+  .bg-dark-blue {
+    background-color: #24292f;
+  }
+  a button.btn {
+    background-color: cadetblue;
+  }
+  a button.btn:hover {
+    background-color: darkcyan;
+    color: white;
+    border-color: darkcyan;
+    outline: none;
+    box-shadow: none;
+  }
+  
+  blockchain {
+    max-height: 700px;
+    max-width: 900px;
+    overflow: scroll;
+    overflow-y: hidden;
+    padding: 2rem;
+  }
+  
+  chain-link {
+    font-size: 1.5rem;
+    margin: 0.8rem;
+    color: darkslategray;
+  }
+  
+  .btn-close {
+    background-color: red !important;
+  }
+  
+  .block {
+    cursor: pointer;
+    color: green;
+    min-width: 300px;
+  }
+  
+  .block a {
+    text-decoration: none;
+  }
+  .block .card-header {
+      background-color: #333;
+  }
+  .block.active {
+    border: 2px solid darkseagreen;
+  }

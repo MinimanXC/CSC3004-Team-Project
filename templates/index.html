@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1 class="display-1 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span>
+</h1>
+<a href="" target="_blank"><button class="btn">Add New Entry</button></a>
+<p></p>
+
+<blockchain class="d-flex align-items-center">
+<!-- Block 1-->
+{% for item in data %}
+  {% if loop.first %}
+  <block class="card block active" data-bs-toggle="collapse" href="#Genesis-block" aria-expanded="false" aria-controls="Genesis-block">
+  {% else %}
+  <block class="card block" data-bs-toggle="collapse" aria-expanded="false">
+  {% endif %}
+  <div class="card-header">
+    <span class="display-4">Block {{ item._blockId }} </span>
+    {% if loop.first %}
+    <p class="text-success">(Genesis block)</p>
+    {% else %}
+    <p class="text-success">(Not Genesis block)</p>
+    {% endif %}
+  </div>
+
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item">
+      <h5>Hash</h5>
+      <span class="hash">{{ item.getHash() }}</span>
+      <h5>Hash of previous block</h5>
+      <span class="text-muted">{{ item.getPreviousHash() }}</span>
+    </li>
+
+    <li class="list-group-item">
+      <h6>Nonce</h6>
+      <span class="text-muted">{{ item._nonce }}</span>
+    </li>
+
+    <li class="list-group-item">
+      <h6>Data</h6>
+      <span class="text-muted">{{ item._data }}</span>
+    </li>
+
+    <!-- <li class="list-group-item">
+      <h6>Timestamp</h6>
+      <span class="text-muted">1241351251250000</span>
+    </li> -->
+  </ul>
+</block>
+
+{% if not loop.last %}
+<chain-link>
+  <i class="fas fa-link"></i>
+</chain-link>
+{% endif %}
+
+{% endfor %}
+</blockchain>
+
+{% endblock content %}
