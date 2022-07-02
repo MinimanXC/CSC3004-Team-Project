@@ -52,24 +52,37 @@ class bc_server():
         self.db = firestore.client()
 
         self.lock = -1
+        self.requests_left = 0
         self.main()
 
     def main(self):
-        self.check_request_lock()
         print("Done checking Lock Requests")
         self.poll_lock()
-        while self.lock != 0:
+        self.poll_requests()
+
+        # Indefinitely check that no one is holding lock or have any requests
+        while True:
             time.sleep(2)
 
-    # Check which client was the first to request for lock
-    def check_request_lock(self):
-        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(u'requestors').stream()
+    # Initiate threading to poll for new requests added to 'request_lock', 'requestors' collection
+    # Check for any new requests submitted by client, if yes, process it
+    def poll_requests(self):
+        # Create an Event for notifying main Thread
+        self.requests_callback_done = threading.Event()
+        requests_coll = self.db.collection_group('requestors')
+
+        # Watch the document for changes
+        self.doc_watch = requests_coll.on_snapshot(self.on_requests_snapshot)
+    
+    # Callback function to capture changes to lock availability
+    def on_requests_snapshot(self, coll_snapshot, changes, read_time):
         requests_list = []
 
         try:
-            for requests in request_lock_coll:
+            for requests in coll_snapshot:
                 print(requests.to_dict())
                 requests_list.append(requests.to_dict()) 
+                self.requests_left += 1
                 
         except Exception as e:
             print("While handling requests: ", e)
@@ -78,6 +91,7 @@ class bc_server():
             requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
             self.earliest_requestor = requests_list[0].get('client_id')
             self.earliest_requestor_type = requests_list[0].get('user_type')
+            print(f'> Requestor: {self.earliest_requestor}, Requestor Type: {self.earliest_requestor_type}')
             
             # Assign lock to client
             self.assign_lock(self.earliest_requestor)
@@ -85,13 +99,16 @@ class bc_server():
             # Remove request since lock has been assigned to the client
             self.remove_request_lock(self.earliest_requestor, self.earliest_requestor_type)
 
-    # Assgin lock to the client through its client id
+        # !! Don't release callback as need to indefinitely check for requests
+
+    # Assign lock to the client through its client id
     def assign_lock(self, client_id):
         lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL)
         lock_doc.update(
             {
-                u'assigned_client': client_id,
-                u'last_change': firestore.SERVER_TIMESTAMP
+                u'assigned_client': str(client_id),
+                u'last_change': firestore.SERVER_TIMESTAMP,
+                u'lock': -1
             }
         )
         print("Assigned lock to: ", client_id)
@@ -102,35 +119,14 @@ class bc_server():
         requestor = str(user_type) + '_' + str(doc_id)
 
         request_lock_coll.document(requestor).delete()
+        self.requests_left -= 1
         print("Removed lock request for: ", requestor)
-
-    # Initiate threading to poll for new requests added to 'request_lock', 'requestors' collection
-    # Once lock is assigned to a client, poll for changes to the lock and assigned_client field
-    # If lock is 0, and assigned_client is empty, means client is done with it's processes
-    def poll_requests(self):
-        # Create an Event for notifying main Thread
-        self.callback_done = threading.Event()
-        requests_coll = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).collection('requestors')
-
-        # Watch the document for changes
-        self.doc_watch = requests_coll.on_snapshot(self.on_requests_snapshot)
-    
-    # Callback function to capture changes to lock availability
-    def on_requests_snapshot(self, doc_snapshot, changes, read_time):
-        curr_lock = doc_snapshot[0].get('lock')
-        assigned_client = doc_snapshot[0].get('assigned_client')
-        print(f'> Current lock: {curr_lock}, Assigned Client: {assigned_client}')
-
-        # Ensure lock is set back to available (0) and assigned client releases the lock before releasing callback
-        if (curr_lock == 0 and assigned_client == ''):
-            self.lock = curr_lock
-            self.callback_done.set()
     
     # Once lock is assigned to a client, poll for changes to the lock and assigned_client field
     # If lock is 0, and assigned_client is empty, means client is done with it's processes
     def poll_lock(self):
         # Create an Event for notifying main Thread
-        self.callback_done = threading.Event()
+        self.lock_callback_done = threading.Event()
         lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL)
 
         # Watch the document for changes
@@ -145,7 +141,8 @@ class bc_server():
         # Ensure lock is set back to available (0) and assigned client releases the lock before releasing callback
         if (curr_lock == 0 and assigned_client == ''):
             self.lock = curr_lock
-            self.callback_done.set()
+            print("Client released lock")
+            self.lock_callback_done.set()
 
 if __name__ == '__main__':
     bc_server()

@@ -57,7 +57,7 @@ class bc_client():
         self.main()
 
     def main(self):
-        self.request_lock() # Request lock from server
+        self.request_lock() # Request lock from server if want to add block to blockchain
         self.check_lock() # Check if lock is available (0) or not (-1)
         self.send_new_block_details() # Send details to be added to new block
 
@@ -68,15 +68,14 @@ class bc_client():
         self.lock_client = (items.to_dict()).get('assigned_client')
         print('> Current Lock State: ', self.lock)
         
-        # Getting realtime updates to check on lock if its unavailable
-        if (self.lock != 0 or self.lock_client != self.curr_client_id):
+        # Getting realtime updates to check on lock if its available and assigned to this user
+        if (self.lock != -1 and self.lock_client != self.curr_client_id):
 
-            print('\nLock is currently unavailable, will poll for changes ')
             self.poll_lock()
-            while (self.lock != 0 or self.lock_client != self.curr_client_id):
+            while self.lock != -1 and self.curr_client_id != self.lock_client:
                 time.sleep(2)
 
-                # Wait for change in lock value before executing adding details to temp_new_block
+                # Ensure lock is -1 and assigned_user is this current user before executing other functions
         
         return self.lock
 
@@ -95,8 +94,9 @@ class bc_client():
         self.lock_client = doc_snapshot[0].get('assigned_client')
         print(f'> Received lock: {self.lock}, Client {self.lock_client}')
 
-        # Ensure lock is available (0) and assigned client is this client before releasing callback
-        if (self.lock == 0 and self.lock_client == self.curr_client_id):
+        # Ensure lock is set to not available (-1) and assigned client is this client before releasing callback
+        if self.lock == -1 and str(self.lock_client) == str(self.curr_client_id):
+            self.lock_client = self.curr_client_id
             self.callback_done.set()
     
     # Request block from server before adding block to temp_block
