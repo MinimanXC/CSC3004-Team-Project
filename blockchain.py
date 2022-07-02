@@ -110,6 +110,10 @@ class Blockchain():
     def printChain(self) -> None:
         self.chain.printList()
 
+    def getChain(self) -> list[object]:
+        chainList = self.chain.toArray()
+        return chainList
+
 if __name__ == '__main__':
     # DIFFICULTY = 4 # Const var to enforce number of zeros in hash. Remove if no longer mining
 
