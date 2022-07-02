@@ -1,25 +1,26 @@
 ''' === TO-DO ===
 - Runs own copy of Blockchain Server
 
-• Locks
-	◦ Make sure the Firebase lock is 0 before requesting to add details for a new block
-	◦ Once lock is granted by server
-
-• Acquire lock from server
+• [Done] Locks
+	◦ To add new block, user must request for lock from server
+	◦ Once lock is granted by server send new block details to 'temp_new_details'
+    ◦ Once done, release lock by changing lock value to available (0) and 'assigned_client' to nothing
+        - Server will know that client has released the lock
 
 • New Blocks 
-	◦ Poll and check if there’s any new block added to Firebase by Server 
-	◦ Point 4 and Point 1
+	◦ Poll and check if there’s any new block added to Firebase by Server [Done]
+    ◦ Add Block to client's copy of the Blockchain
 
-• Acknowledgement
-	◦ Change acknowledgement on Firebase to 0 - point 2
+• [Done] Acknowledgement
+	◦ Increase acknowledgement on Firebase - to tell server that client has received the new block
 	◦ Ensures sync-ed Blockchain on all clients
 
 Process:
 1) User wants to add new block to blockchain
 2) System request lock from server
-3) Continue to next step only if system polls that lock is available (0) and assigned_client is the current client
+3) Continue to next step only if system polls that lock is assigned (-1) and 'assigned_client' is the current client
 4) Since assigned client is current client, add new block to 'temp_new_block'
+
 '''
 
 try:
@@ -37,6 +38,7 @@ except:
 BLOCK_COLL = "blocks"
 LOCK_AVAIL = "lock_availability"
 NEW_BLOCK = "new_block"
+NEW_BLOCK_ACK = "new_block_ack"
 TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
 
@@ -60,6 +62,10 @@ class bc_client():
         self.request_lock() # Request lock from server if want to add block to blockchain
         self.check_lock() # Check if lock is available (0) or not (-1)
         self.send_new_block_details() # Send details to be added to new block
+        self.poll_new_block()
+
+        while True:
+            time.sleep(2)
 
     def check_lock(self):
         print('Checking Lock State')
@@ -95,7 +101,7 @@ class bc_client():
         print(f'> Received lock: {self.lock}, Client {self.lock_client}')
 
         # Ensure lock is set to not available (-1) and assigned client is this client before releasing callback
-        if self.lock == -1 and str(self.lock_client) == str(self.curr_client_id):
+        if self.lock == -1 and self.lock_client == self.curr_client_id:
             self.lock_client = self.curr_client_id
             self.callback_done.set()
     
@@ -133,8 +139,10 @@ class bc_client():
         print("Sent New Block Details! ")
         self.complete_sending()
     
+    # For changing assigned_client to None and last_client to this client
+    # Inform server that client has finished executing functions 
     def complete_sending(self):
-        lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL) # For changing assigned_client to None and last_client to this client
+        lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL) 
         lock_doc.update(
             {
                 u'assigned_client': "",
@@ -145,6 +153,35 @@ class bc_client():
         )
 
         print("Sent completion of adding New Block Details! ")
+
+    # 1. Check if server has sent a new Block to add to Blockchain
+    def poll_new_block(self):
+        # Create an Event for notifying main Thread
+        self.new_block_callback_done = threading.Event()
+        self.new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
+
+        # Watch the document for changes
+        self.new_block_doc_watch = self.new_block_doc.on_snapshot(self.on_new_block_snapshot)
+    
+    # 2. Callback function to capture changes to new_block documents
+    # - Add block to client's copy of blockchain 
+    # - Send acknowledgement to Firebase
+    def on_new_block_snapshot(self, doc_snapshot, changes, read_time):
+        if doc_snapshot:
+            new_block_to_add = doc_snapshot[0]
+            
+            # TO-DO: Add block to Blockchain
+            
+            self.new_block_callback_done.set()
+
+            # Increase ack count
+            self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK)
+            ack_count = self.ack_doc.get().get('ack')
+            self.ack_doc.update({
+                'ack': ack_count+1,
+                'ack_time': firestore.SERVER_TIMESTAMP
+            })
+            print("Sent acknowledgement! ")
 
 if __name__ == '__main__':
     bc_client()
