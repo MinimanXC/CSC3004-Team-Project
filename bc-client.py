@@ -107,7 +107,8 @@ class bc_client():
             'client_id' : 1, 
             'data' : "test",
             'image_link' : "sample image",
-            'new_block_details' : "test"
+            'new_block_details' : "test",
+            'timestamp' : firestore.SERVER_TIMESTAMP
         }
 
         new_block.set(new_block_details)
@@ -115,7 +116,11 @@ class bc_client():
 
     # Request block from server before adding block to temp_block
     def request_lock(self):
-        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(u'requestors').document(u'client_1')
+        # Check User collection and assign client an ID
+        # Thus, the document to be inserted as in 'requestor' collection will be 'client_<client_id>'
+        requestor = 'requestors'
+        client = 'client_' + str(1)
+        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(requestor).document(client)
         new_request_details = {
             'client_id' : 1, 
             'request_time' : firestore.SERVER_TIMESTAMP
