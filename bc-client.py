@@ -51,6 +51,8 @@ class bc_client():
 
         self.lock = -1
         self.curr_client_id = 1
+        self.curr_client = 'client_' + str(self.curr_client_id)
+
         self.main()
 
     def main(self):
@@ -71,7 +73,6 @@ class bc_client():
             print('\nLock is currently unavailable, will poll for changes ')
             self.poll_lock()
             while (self.lock != 0 or self.lock_client != self.curr_client_id):
-                print('Result', self.lock)
                 time.sleep(2)
 
                 # Wait for change in lock value before executing adding details to temp_new_block
@@ -97,23 +98,6 @@ class bc_client():
         if (self.lock == 0 and self.lock_client == self.curr_client_id):
             self.callback_done.set()
     
-    # Block details will be added to a temporary field before 
-    def send_new_block_details(self):
-        new_block = self.db.collection(BLOCK_COLL).document(TEMP_NEW_BLOCK)
-
-        # !! Note: image_link is a link to receipt by delivery partner
-        # Image itself should be first uploaded to Firestore Storage and the link should be placed into the 'image_link' field
-        new_block_details = {
-            'client_id' : 1, 
-            'data' : "test",
-            'image_link' : "sample image",
-            'new_block_details' : "test",
-            'timestamp' : firestore.SERVER_TIMESTAMP
-        }
-
-        new_block.set(new_block_details)
-        print("Sent New Block Details! ")
-
     # Request block from server before adding block to temp_block
     def request_lock(self):
         # Check User collection and assign client an ID
@@ -128,6 +112,36 @@ class bc_client():
 
         request_lock_coll.set(new_request_details)
         print("Sent Lock Request to Server! ")
+    
+    # Block details will be added to a temporary field before 
+    def send_new_block_details(self):
+        new_block = self.db.collection(BLOCK_COLL).document(TEMP_NEW_BLOCK) # For filling new block to add
+
+        # !! Note: image_link is a link to receipt by delivery partner
+        # Image itself should be first uploaded to Firestore Storage and the link should be placed into the 'image_link' field
+        new_block_details = {
+            'client_id' : 1, 
+            'data' : "test",
+            'image_link' : "sample image",
+            'new_block_details' : "test",
+            'timestamp' : firestore.SERVER_TIMESTAMP
+        }
+
+        new_block.set(new_block_details)
+        print("Sent New Block Details! ")
+        self.complete_sending()
+    
+    def complete_sending(self):
+        lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL) # For changing assigned_client to None and last_client to this client
+        lock_doc.update(
+            {
+                u'assigned_client': "",
+                u'last_change': firestore.SERVER_TIMESTAMP,
+                u'last_client': self.curr_client_id
+            }
+        )
+
+        print("Sent completion of adding New Block Details! ")
 
 if __name__ == '__main__':
     bc_client()
