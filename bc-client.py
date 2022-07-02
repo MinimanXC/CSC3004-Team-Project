@@ -51,7 +51,8 @@ class bc_client():
 
         self.lock = -1
         self.curr_client_id = 1
-        self.curr_client = 'client_' + str(self.curr_client_id)
+        self.user_type = 'client' # Either client or supplier
+        self.curr_client = self.user_type + '_' + str(self.curr_client_id)
 
         self.main()
 
@@ -107,7 +108,8 @@ class bc_client():
         request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(requestor).document(client)
         new_request_details = {
             'client_id' : 1, 
-            'request_time' : firestore.SERVER_TIMESTAMP
+            'request_time' : firestore.SERVER_TIMESTAMP,
+            'user_type': self.user_type
         }
 
         request_lock_coll.set(new_request_details)
@@ -137,7 +139,8 @@ class bc_client():
             {
                 u'assigned_client': "",
                 u'last_change': firestore.SERVER_TIMESTAMP,
-                u'last_client': self.curr_client_id
+                u'last_client': self.curr_client_id,
+                u'lock': 0
             }
         )
 
