@@ -1,0 +1,40 @@
+**Docker**
+
+$ docker image rm k8-py-fb
+$ docker build -t k8-py-fb .
+$ docker tag k8-py-fb:latest k8-py-fb:latest
+
+**Kubernetes**
+
+Add Namespace 
+$ kubectl create namespace k8-py-fb
+
+PV/PVC
+kubectl create -f persistent_volume.yml
+kubectl create -f persistent_volume_claim.yml
+
+Deployment/Services
+kubectl create -f k8_py_fb.deployment.yml 
+kubectl create -f k8_py_fb.service.yml
+
+Get Services 
+$ kubectl get all -n k8-py-fb 
+$ kubectl get pv,pvc -n k8-py-fb 
+$ kubectl get services -n k8-py-fb -o wide
+$ kubectl get pods --all-namespaces
+$ kubectl describe pod <pod name> -n k8-py-fb 
+$ kubectl logs <pod name> -n k8-py-fb 
+
+* Delete Everything
+kubectl delete --all pods --namespace=k8-py-fb
+kubectl delete --all deployments --namespace=k8-py-fb
+kubectl delete --all services --namespace=k8-py-fb
+
+PV/PVC set to retain so no point deleting
+# kubectl delete --all pvc --namespace=k8-py-fb 
+# kubectl delete --all pv --namespace=k8-py-fb  
+
+kubectl delete persistentvolumeclaim/appclaim --namespace=k8-py-fb
+kubectl delete persistentvolume/app-disk --namespace=k8-py-fb --grace-period=0 --force
+
+kubectl exec -ti pod/k8-py-fb-85c697789f-kvhqz -n k8-py-fb -- ls -l 
