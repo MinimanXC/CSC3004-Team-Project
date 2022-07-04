@@ -15,6 +15,10 @@
 	◦ Increase acknowledgement on Firebase - to tell server that client has received the new block
 	◦ Ensures sync-ed Blockchain on all clients
 
+• New user to the (Blockchain) system
+    ◦ Check if copy of blockchain exists in system
+    ◦ If doesn't exist, request download from server
+
 Process:
 1) User wants to add new block to blockchain
 2) System request lock from server
@@ -24,11 +28,14 @@ Process:
 '''
 
 try:
-    import time
+    from firebase_admin import credentials, firestore
     from datetime import datetime
+
+    import os
+    import time
+    import pickle
     import threading
     import firebase_admin
-    from firebase_admin import credentials, firestore
 
     print("Dependencies loaded successfully")
 except:
@@ -41,6 +48,10 @@ NEW_BLOCK = "new_block"
 NEW_BLOCK_ACK = "new_block_ack"
 TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
+REQUEST_BLOCKCHAIN = "request_blockchain"
+BLOCKCHAIN_COPY = "blockchain_copy"
+BLOCKCHAIN_ACK = "blockchain_ack"
+BLOCKCHAIN_PATH = "blockchain.pickle"
 
 class bc_client():
 
@@ -56,17 +67,62 @@ class bc_client():
         self.user_type = 'client' # Either client or supplier
         self.curr_client = self.user_type + '_' + str(self.curr_client_id)
 
+        self.curr_client_email = 'test@test.com'
+
         self.main()
 
     def main(self):
-        self.request_lock() # Request lock from server if want to add block to blockchain
-        self.check_lock() # Check if lock is available (0) or not (-1)
-        self.send_new_block_details() # Send details to be added to new block
-        self.poll_new_block()
+        self.check_new_user()
+        # self.request_lock() # Request lock from server if want to add block to blockchain
+        # self.check_lock() # Check if lock is available (0) or not (-1)
+        # self.send_new_block_details() # Send details to be added to new block
+        # self.poll_new_block()
 
         while True:
             time.sleep(2)
+    
+    # Check if copy of Blockchain exists on client's machine (if new user or not)
+    # If not, make a request to server to send a copy over
+    def check_new_user(self):
+        if not (os.path.exists(BLOCKCHAIN_PATH)):
+            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_email)
+            bc_request_details = {
+                'client_id' : self.curr_client_email,
+                'request_time' : firestore.SERVER_TIMESTAMP,
+                'user_type': self.user_type
+            }
 
+            self.request_blockchain_doc.set(bc_request_details)
+            print("Sent Blockchain Request to Server! ")
+            
+            self.poll_blockchain_copy()
+    
+    # Initiate threading to poll for a copy of blockchain sent by server
+    def poll_blockchain_copy(self):
+        # Create an Event for notifying main Thread
+        self.bc_callback_done = threading.Event()
+        self.blockchain_copy_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_COPY)
+
+        # Watch the document for changes
+        self.blockchain_copy_doc_watch = self.blockchain_copy_doc.on_snapshot(self.on_blockchain_copy_snapshot)
+    
+    # Callback function to capture changes to lock availability
+    def on_blockchain_copy_snapshot(self, doc_snapshot, changes, read_time):
+        if doc_snapshot:
+            blockchain_copy = doc_snapshot[0].get('bc')
+            print(f'> Received Blockchain copy !')
+
+            with open(BLOCKCHAIN_PATH, 'wb') as handle:
+                pickle.dump(blockchain_copy, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+            self.bc_callback_done.set()
+
+            # Send acknowledgement to server that blockchain copy received successfully
+            bc_ack_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).get()
+            bc_ack = bc_ack_doc.get('bc_ack')
+            self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).set({'bc_ack': bc_ack+1})
+
+    # Getting updates to check on lock if its available and assigned to this user
     def check_lock(self):
         print('Checking Lock State')
         items = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
@@ -74,10 +130,9 @@ class bc_client():
         self.lock_client = (items.to_dict()).get('assigned_client')
         print('> Current Lock State: ', self.lock)
         
-        # Getting realtime updates to check on lock if its available and assigned to this user
         if (self.lock != -1 and self.lock_client != self.curr_client_id):
 
-            self.poll_lock()
+            self.poll_lock() # Set callback
             while self.lock != -1 and self.curr_client_id != self.lock_client:
                 time.sleep(2)
 
