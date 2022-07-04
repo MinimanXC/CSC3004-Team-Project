@@ -35,6 +35,19 @@ PV/PVC set to retain so no point deleting
 # kubectl delete --all pv --namespace=k8-py-fb  
 
 kubectl delete persistentvolumeclaim/appclaim --namespace=k8-py-fb
-kubectl delete persistentvolume/app-disk --namespace=k8-py-fb --grace-period=0 --force
+kubectl delete persistentvolume/appdisk --namespace=k8-py-fb --grace-period=0 --force
 
-kubectl exec -ti pod/k8-py-fb-85c697789f-kvhqz -n k8-py-fb -- ls -l 
+### POD:
+kubectl get all -n k8-py-fb
+kubectl delete --all pods --namespace=k8-py-fb
+
+kubectl describe pod/k8-py-fb-85c697789f-jmhdh -n k8-py-fb 
+kubectl describe persistentvolumeclaim/appclaim -n k8-py-fb 
+kubectl describe persistentvolume/appdisk -n k8-py-fb 
+
+kubectl logs pod/k8-py-fb-85c697789f-jmhdh -n k8-py-fb 
+kubectl exec -ti pod/k8-py-fb-85c697789f-jmhdh -n k8-py-fb -- ls -l ../app-data
+kubectl cp k8-py-fb/k8-py-fb-85c697789f-swq62:../app-data/test_file.txt /tmp/app-data/testfile.txt 
+
+### Notes:
+# - Files in ../app-data will persist unless persistent_volume or persistent_volume_claim is corrupted 

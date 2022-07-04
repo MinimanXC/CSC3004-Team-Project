@@ -26,7 +26,7 @@ spec:
           name: https-node
         volumeMounts:
         - name: k8-py-fb-storage
-          mountPath: /app-data
+          mountPath: "/app-data"
       volumes:
         - name: k8-py-fb-storage
           persistentVolumeClaim:

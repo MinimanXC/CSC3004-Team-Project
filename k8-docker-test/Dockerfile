@@ -9,6 +9,10 @@ ADD . /app
 # Install required Python dependencies
 RUN pip install -r requirements.txt
 
+# Set Timezone
+RUN apt update && apt install tzdata -y
+ENV TZ="Asia/Singapore"
+
 # Expose ports (HTTP/HTTPS)
 EXPOSE 80 
 EXPOSE 443

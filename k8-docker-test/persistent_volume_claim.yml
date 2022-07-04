@@ -4,7 +4,7 @@ metadata:
   name: appclaim
   namespace: k8-py-fb
 spec:
-  storageClassName: manual
+  storageClassName: hostpath
   accessModes:
     - ReadWriteMany
   resources:
