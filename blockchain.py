@@ -2,6 +2,7 @@ from itertools import chain
 from typing import Optional
 from tools import calculateHash
 from linkedlist import LinkedList
+import pickle
 
 GENESIS_HASH = '0' * 64 # Constant value of 64 zeros. Used by genesis block as base case
 
@@ -141,6 +142,7 @@ class Blockchain():
     def getChain(self) -> list[object]:
         chainList = self.chain.toArray()
         return chainList
+        
 
 if __name__ == '__main__':
     # DIFFICULTY = 4 # Const var to enforce number of zeros in hash. Remove if no longer mining
@@ -161,6 +163,7 @@ if __name__ == '__main__':
     # print(b1)
     # print(b2)
     # print(b3)
+    
     blockchain = Blockchain()
     testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
 
@@ -170,9 +173,24 @@ if __name__ == '__main__':
     blockchain.printChain()
     print("The blockchain's validity is", blockchain.isValid())
 
+    # Pickling the chain
+    dbfile = open('savedChain.bc', 'ab') # Use binary mode (Important)
+    # Write object into file
+    pickle.dump(blockchain, dbfile)                     
+    dbfile.close()
+    print("\n----- CHAIN SAVED -----")
+
     # Trying to invalidate the block to test validity function
     
     blockchain.chain.head.prev.data.setData("Yo mama")
     #blockchain.chain.head.prev.data.mine(0)
     blockchain.printChain()
     print("The blockchain's validity is", blockchain.isValid())
+
+    # Read in binary mode (Important)
+    dbfile = open('savedChain.bc', 'rb')     
+    savedChain = pickle.load(dbfile)
+    print("\n----- CHAIN LOADED -----")
+    savedChain.printChain()
+    print("The blockchain's validity is", savedChain.isValid())
+    dbfile.close()
