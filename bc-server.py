@@ -182,7 +182,8 @@ class bc_server():
             for requests in coll_snapshot:
                 # print(requests.to_dict())
                 requests_list.append(requests.to_dict()) 
-
+            
+            print("\nReceived new lock request")
         except Exception as e:
             print("While handling requests: ", e)
 
@@ -261,7 +262,7 @@ class bc_server():
         if doc_snapshot:
             temp_block = doc_snapshot[0]
             client_id = temp_block.get('client_id')
-            print(f'> Temp Block By: {client_id}')
+            print(f'> Temp Block By: {client_id}') # TODO: Add count validation check, due to multiple prints
 
             if self.earliest_requestor == client_id:
                 self.temp_block_callback_done.set()
@@ -270,7 +271,7 @@ class bc_server():
             
             self.add_block_to_blockchain(temp_block.to_dict())
         else:
-            print("No new Block details")
+            print("No new Block details") # TODO: Add count validation check, due to multiple prints
     
     # Add details provided by client to Blockchain
     def add_block_to_blockchain(self, new_block_dict):
@@ -301,7 +302,7 @@ class bc_server():
             'block_added_time': firestore.SERVER_TIMESTAMP
         })
 
-        print("Sent Block to Clients! ")
+        print("Sent Block to Clients! ") # TODO: Add count validation check, due to multiple prints
 
         # Start polling for acknowledgement message sent by clients
         self.poll_ack()
@@ -322,7 +323,7 @@ class bc_server():
 
         # Ensure lock is set back to available (0) and assigned client releases the lock before releasing callback
         if (curr_ack == self.clients_count):
-            print("Clients ack-ed")
+            print("Clients ack-ed") # TODO: Add count validation check, due to multiple prints
             self.ack_callback_done.set()
             
             # Once all clients have acknowledged, remove block details

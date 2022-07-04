@@ -74,10 +74,10 @@ class bc_client():
 
     def main(self):
         self.check_new_user()
-        # self.request_lock() # Request lock from server if want to add block to blockchain
-        # self.check_lock() # Check if lock is available (0) or not (-1)
-        # self.send_new_block_details() # Send details to be added to new block
-        # self.poll_new_block()
+        self.request_lock() # Request lock from server if want to add block to blockchain
+        self.check_lock() # Check if lock is available (0) or not (-1)
+        self.send_new_block_details() # Send details to be added to new block
+        self.poll_new_block()
 
         while True:
             time.sleep(2)
@@ -111,7 +111,7 @@ class bc_client():
     def on_blockchain_copy_snapshot(self, doc_snapshot, changes, read_time):
         if doc_snapshot:
             blockchain_copy = doc_snapshot[0].get('bc')
-            print(f'> Received Blockchain copy !')
+            print('> Received Blockchain copy !')
 
             with open(BLOCKCHAIN_PATH, 'wb') as handle:
                 handle.write(blockchain_copy)
@@ -126,6 +126,24 @@ class bc_client():
             bc_ack_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).get()
             bc_ack = bc_ack_doc.get('bc_ack')
             self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).set({'bc_ack': bc_ack+1})
+
+            print('> Sent acknowledgement message !')
+
+    # Request block from server before adding block to temp_block
+    def request_lock(self):
+        # Check User collection and assign client an ID
+        # Thus, the document to be inserted as in 'requestor' collection will be 'client_<client_id>'
+        requestor = 'requestors'
+        client = 'client_' + str(1)
+        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(requestor).document(client)
+        new_request_details = {
+            'client_id' : 1, 
+            'request_time' : firestore.SERVER_TIMESTAMP,
+            'user_type': self.user_type
+        }
+
+        request_lock_coll.set(new_request_details)
+        print("\nSent Lock Request to Server! ")
 
     # Getting updates to check on lock if its available and assigned to this user
     def check_lock(self):
@@ -149,10 +167,10 @@ class bc_client():
     def poll_lock(self):
         # Create an Event for notifying main Thread
         self.callback_done = threading.Event()
-        lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL)
+        lock_avail_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL)
 
         # Watch the document for changes
-        self.doc_watch = lock_doc.on_snapshot(self.on_lock_snapshot)
+        self.doc_watch = lock_avail_doc.on_snapshot(self.on_lock_snapshot)
     
     # Callback function to capture changes to lock availability
     def on_lock_snapshot(self, doc_snapshot, changes, read_time):
@@ -164,22 +182,6 @@ class bc_client():
         if self.lock == -1 and self.lock_client == self.curr_client_id:
             self.lock_client = self.curr_client_id
             self.callback_done.set()
-    
-    # Request block from server before adding block to temp_block
-    def request_lock(self):
-        # Check User collection and assign client an ID
-        # Thus, the document to be inserted as in 'requestor' collection will be 'client_<client_id>'
-        requestor = 'requestors'
-        client = 'client_' + str(1)
-        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(requestor).document(client)
-        new_request_details = {
-            'client_id' : 1, 
-            'request_time' : firestore.SERVER_TIMESTAMP,
-            'user_type': self.user_type
-        }
-
-        request_lock_coll.set(new_request_details)
-        print("Sent Lock Request to Server! ")
     
     # Block details will be added to a temporary field before 
     def send_new_block_details(self):
@@ -196,14 +198,14 @@ class bc_client():
         }
 
         new_block.set(new_block_details)
-        print("Sent New Block Details! ")
+        print("\nSent New Block Details! ")
         self.complete_sending()
     
     # For changing assigned_client to None and last_client to this client
     # Inform server that client has finished executing functions 
     def complete_sending(self):
-        lock_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL) 
-        lock_doc.update(
+        lock_avail_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL) 
+        lock_avail_doc.update(
             {
                 u'assigned_client': "",
                 u'last_change': firestore.SERVER_TIMESTAMP,
@@ -214,7 +216,7 @@ class bc_client():
 
         print("Sent completion of adding New Block Details! ")
 
-    # 1. Check if server has sent a new Block to add to Blockchain
+    # Check if server has sent a new Block to add to Blockchain
     def poll_new_block(self):
         # Create an Event for notifying main Thread
         self.new_block_callback_done = threading.Event()
@@ -223,14 +225,25 @@ class bc_client():
         # Watch the document for changes
         self.new_block_doc_watch = self.new_block_doc.on_snapshot(self.on_new_block_snapshot)
     
-    # 2. Callback function to capture changes to new_block documents
+    # Callback function to capture changes to new_block documents
     # - Add block to client's copy of blockchain 
     # - Send acknowledgement to Firebase
     def on_new_block_snapshot(self, doc_snapshot, changes, read_time):
         if doc_snapshot:
             new_block_to_add = doc_snapshot[0]
             
-            # TO-DO: Add block to Blockchain
+            # Add block to existing Blockchain
+            try:
+                with open(BLOCKCHAIN_PATH, 'rb') as bc_file:
+                    bc = pickle.load(bc_file)
+            
+                new_block = Block(new_block_to_add.to_dict())
+                bc.addBlock(new_block)
+
+                with open(BLOCKCHAIN_PATH, 'wb') as bc_file:
+                    pickle.dump(bc, bc_file)
+            except:
+                print("error occurred creating new block")
             
             self.new_block_callback_done.set()
 
@@ -241,7 +254,12 @@ class bc_client():
                 'ack': ack_count+1,
                 'ack_time': firestore.SERVER_TIMESTAMP
             })
-            print("Sent acknowledgement! ")
+            print("[Added new block to Blockchain] Sent acknowledgement! ")
+
+            ## Print Blockchain after adding new Block
+            # with open(BLOCKCHAIN_PATH, 'rb') as bc_file:
+            #     bc = pickle.load(bc_file)
+            #     print(bc.printChain())
 
 if __name__ == '__main__':
     bc_client()
