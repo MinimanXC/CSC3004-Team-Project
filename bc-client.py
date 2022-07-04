@@ -29,6 +29,7 @@ Process:
 
 try:
     from firebase_admin import credentials, firestore
+    from blockchain import Blockchain, Block
     from datetime import datetime
 
     import os
@@ -51,7 +52,7 @@ REQUEST_LOCK = "request_lock"
 REQUEST_BLOCKCHAIN = "request_blockchain"
 BLOCKCHAIN_COPY = "blockchain_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
-BLOCKCHAIN_PATH = "blockchain.pickle"
+BLOCKCHAIN_PATH = "blockchain.bc"
 
 class bc_client():
 
@@ -93,7 +94,7 @@ class bc_client():
             }
 
             self.request_blockchain_doc.set(bc_request_details)
-            print("Sent Blockchain Request to Server! ")
+            print("\nSent Blockchain Request to Server! ")
             
             self.poll_blockchain_copy()
     
@@ -113,7 +114,11 @@ class bc_client():
             print(f'> Received Blockchain copy !')
 
             with open(BLOCKCHAIN_PATH, 'wb') as handle:
-                pickle.dump(blockchain_copy, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                handle.write(blockchain_copy)
+
+            # with open(BLOCKCHAIN_PATH, 'rb') as handle:
+            #     bc = pickle.load(handle)
+            #     print(bc.printChain())
 
             self.bc_callback_done.set()
 

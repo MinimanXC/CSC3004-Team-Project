@@ -119,13 +119,11 @@ class bc_server():
     
     # Send a copy of the current blockchain to client in pickle format
     def send_blockchain_copy(self):
-        # TO-DO: Replace with actual Blockchain Data
-        #sample_bc = {'hello': 'world'}
-
-        to_send = pickle.dumps(self.blockchain, protocol=pickle.HIGHEST_PROTOCOL)
+        # Serialize Blockchain before sending to Client
+        bc_to_send = pickle.dumps(self.blockchain, protocol=pickle.HIGHEST_PROTOCOL)
 
         self.blockchain_copy_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_COPY)
-        self.blockchain_copy_doc.set({u'bc': to_send})
+        self.blockchain_copy_doc.set({u'bc': bc_to_send})
 
         print("Sent Blockchain Copy !")
     
@@ -135,30 +133,36 @@ class bc_server():
         self.blockchain_ack_callback_done = threading.Event()
         self.blockchain_ack_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK)
 
+        self.ack_count = 0 # To ensure that actions relating to client's ack msg are only processed according to the number of ack to receive
+
         # Watch the document for changes
         self.blockchain_ack_doc_watch = self.blockchain_ack_doc.on_snapshot(self.on_blockchain_ack_snapshot)
     
     # Callback function to capture increase in acknowledge count
     def on_blockchain_ack_snapshot(self, doc_snapshot, changes, read_time):
-        if doc_snapshot:
-            ack_no = doc_snapshot[0].get('bc_ack')
-            
-            if ack_no == self.no_bc_requestors:
-                print("All requestors has received Blockchain copy")
+        for change in changes:
+            # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
+            if change.type.name == 'MODIFIED': 
+                if doc_snapshot:
+                    ack_no = doc_snapshot[0].get('bc_ack')
+                    self.ack_count += 1
 
-                # Remove callback function only when all requestors (clients) have acknowledged 
-                self.blockchain_ack_callback_done.set() 
+                    if ack_no == self.no_bc_requestors and self.ack_count == self.no_bc_requestors:
+                        print("All requestors has received Blockchain copy")
 
-                self.remove_blockchain_request()
+                        self.remove_blockchain_request()
+
+                        # Remove callback function only when all requestors (clients) have acknowledged
+                        self.blockchain_ack_callback_done.set()
 
     # Remove requests as it has been fulfilled
     def remove_blockchain_request(self):
-        self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_COPY).delete()
+        self.blockchain_copy_doc.delete()
         for requestors in self.blockchain_requestors:
             self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(requestors).delete()
+        self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).delete()
         self.blockchain_ack_doc.delete()
         print("Removed Blockchain Request and Acknowledgement")
-
 
     # Initiate threading to poll for new requests added to 'request_lock', 'requestors' collection
     # Check for any new requests submitted by client, if yes, process it
