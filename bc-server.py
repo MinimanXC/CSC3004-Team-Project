@@ -32,6 +32,7 @@ try:
     import pickle
     import threading
     import firebase_admin
+    from blockchain import Blockchain, Block
     from firebase_admin import credentials, firestore
 
     print("Dependencies loaded successfully")
@@ -59,6 +60,13 @@ class bc_server():
         firebase_admin.initialize_app(self.cred)
         # Initialize firestore instance
         self.db = firestore.client()
+
+        # Attempt to load the chain
+        self.blockchain = self.loadChain()
+
+        # If loading of chain fails (aka doesn't exist), create a new empty blockchain object
+        if (self.blockchain == False):
+            self.blockchain = Blockchain()
 
         self.lock = -1
         self.clients_count = 10
@@ -112,9 +120,9 @@ class bc_server():
     # Send a copy of the current blockchain to client in pickle format
     def send_blockchain_copy(self):
         # TO-DO: Replace with actual Blockchain Data
-        sample_bc = {'hello': 'world'}
+        #sample_bc = {'hello': 'world'}
 
-        to_send = pickle.dumps(sample_bc, protocol=pickle.HIGHEST_PROTOCOL)
+        to_send = pickle.dumps(self.blockchain, protocol=pickle.HIGHEST_PROTOCOL)
 
         self.blockchain_copy_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_COPY)
         self.blockchain_copy_doc.set({u'bc': to_send})
@@ -271,6 +279,7 @@ class bc_server():
         }
 
         ### TO-DO: Execute Functions to add Block to Blockchain
+        self.blockchain.addBlock(Block(new_block_dict))
 
         print("Added Block to Blockchain!")
 
@@ -317,6 +326,32 @@ class bc_server():
             new_block_doc.delete()
 
             self.ack_doc.update({'ack':0})
+
+    def saveChain(self, bcObj, name="savedChain"):
+        try:
+            # Pickling the chain
+            saveFile = open(name + '.bc', 'ab') # Use binary mode (Important)
+            # Write object into file
+            pickle.dump(bcObj, saveFile)                     
+            saveFile.close()
+            print("\n----- CHAIN SAVED -----")
+        except:
+            print("Error saving blockchain! Ensure save object is not None!")
+
+    def loadChain(self, name="savedChain", printChain=False): # Load the default chain for demo and grading purposes
+        try:
+            saveFile = open(name + '.bc', 'rb') # TODO: Change the file path when using Docker Persistent Storage
+            savedChain = pickle.load(saveFile)
+            print("\n----- CHAIN LOADED -----")
+            if (printChain):
+                savedChain.printChain()
+                print("The blockchain's validity is", savedChain.isValid())
+                print("\n------------------------")
+            return savedChain
+        except:
+            print("There is no backup of the chain (or an error occured, please try again)!")
+            return False
+
 
 if __name__ == '__main__':
     bc_server()

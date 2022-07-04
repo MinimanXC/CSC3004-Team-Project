@@ -174,10 +174,10 @@ if __name__ == '__main__':
     print("The blockchain's validity is", blockchain.isValid())
 
     # Pickling the chain
-    dbfile = open('savedChain.bc', 'ab') # Use binary mode (Important)
+    saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
     # Write object into file
-    pickle.dump(blockchain, dbfile)                     
-    dbfile.close()
+    pickle.dump(blockchain, saveFile)                     
+    saveFile.close()
     print("\n----- CHAIN SAVED -----")
 
     # Trying to invalidate the block to test validity function
@@ -188,9 +188,10 @@ if __name__ == '__main__':
     print("The blockchain's validity is", blockchain.isValid())
 
     # Read in binary mode (Important)
-    dbfile = open('savedChain.bc', 'rb')     
-    savedChain = pickle.load(dbfile)
+    saveFile = open('savedChain.bc', 'rb')     
+    savedChain = pickle.load(saveFile)
     print("\n----- CHAIN LOADED -----")
     savedChain.printChain()
     print("The blockchain's validity is", savedChain.isValid())
-    dbfile.close()
+    print("\n------------------------")
+    saveFile.close()
