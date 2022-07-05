@@ -87,7 +87,7 @@ function updateCartTotal(){
             //add price to total
             carttable += "<tr><td>" + productname + "</td><td>" + price.toFixed(2) + "</td></tr>";
             total += price;
-            globalThis.inventory.push(productname,price);
+            globalThis.inventory.push([productname,price]);
         }
 
     }

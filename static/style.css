@@ -160,3 +160,11 @@ table td:nth-last-child(1) {
   height: auto;
   display: inline-block;
 }
+
+ .notification.is-danger {
+  background-color: #00D100;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1.25rem 2.5rem 1.25rem 1.5rem;
+  position: relative;
+}
