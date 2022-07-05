@@ -111,10 +111,20 @@ def invalidate_blockchain():
 
     print("!!! Breaking Chain")
     blockchain.breakChain()
-    is_valid = blockchain.isValid()
-    print("Blockchain Validity: ", is_valid)
 
-    return jsonify(is_valid)
+    chainList = blockchain.getChain()
+    blockchain_len = len(chainList)
+
+    is_valid = blockchain.isValid()
+    tampered = blockchain.tamperedCount
+
+    tampered_block_hash = chainList[blockchain_len - tampered - 1]._hash
+    tampered_block_data = chainList[blockchain_len - tampered - 1]._data
+
+    print("Blockchain Validity: ", is_valid, " Tampered Block: ", tampered)
+
+    # Return to JavaScript function that called this function
+    return jsonify(is_valid, tampered, tampered_block_hash, tampered_block_data)
 
 @app.route('/logout')
 def logout():

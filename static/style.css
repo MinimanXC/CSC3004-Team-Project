@@ -52,6 +52,10 @@
   .block.active {
     border: 2px solid darkseagreen;
   }
+  .block.active-invalid {
+    border: 2px solid red;
+    color: red;
+  }
 
 @import url('https://fonts.googleapis.com/css?family=Quicksand:400,700');
 *, ::before, ::after { box-sizing: border-box; }

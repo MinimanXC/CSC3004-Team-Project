@@ -2,9 +2,9 @@
 {% block content %}
 
 {% if data|length == 0 %}
-<h2 class="display-1 h2 mt-5">Empty Blockchain <span id="nrBlocks"></span></h2>
+<h2 class="display-3 h2 mt-5">Empty Blockchain <span id="nrBlocks"></span></h2>
 {% else %}
-<h2 class="display-1 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span></h2>
+<h2 class="display-3 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span></h2>
 {% endif %}
 
 <!--- BLOCKCHAIN Validity -->
@@ -14,9 +14,10 @@
       <h4 style="text-align: initial;">Blockchain Validity:
         <img id="validity-img" src="{{url_for('static', filename='valid.png')}}"/>
       </h4>
+      <p id="invalidate-comment" style="text-align: initial;"></p>
     </div>
     <div class="col-md-6">
-        <button id="invalidate-btn" type="button" class="btn btn-danger float-end">Invalidate Blockchain</button>
+      <button id="invalidate-btn" type="button" class="btn btn-danger float-end">Invalidate Blockchain</button>
     </div>
   </div>
 </div>
@@ -29,7 +30,7 @@
   {% if loop.first %}
   <block class="card block active" data-bs-toggle="collapse" href="#Genesis-block" aria-expanded="false" aria-controls="Genesis-block">
   {% else %}
-  <block class="card block" data-bs-toggle="collapse" aria-expanded="false">
+  <block id="block-{{ item._blockId }}" class="card block" data-bs-toggle="collapse" aria-expanded="false">
   {% endif %}
   <div class="card-header">
     <span class="display-5">Block {{ item._blockId }} </span>
@@ -43,7 +44,7 @@
   <ul class="list-group list-group-flush">
     <li class="list-group-item">
       <h5>Hash</h5>
-      <span class="hash">{{ item.getHash() }}</span>
+      <span id="block-{{ item._blockId }}-hash" class="hash">{{ item.getHash() }}</span>
       <h5>Hash of previous block</h5>
       <span class="text-muted">{{ item.getPreviousHash() }}</span>
     </li>
@@ -55,7 +56,7 @@
 
     <li class="list-group-item">
       <h6>Data</h6>
-      <span class="text-muted">{{ item._data.data }}</span>
+      <span id="block-{{ item._blockId }}-data" class="text-muted">{{ item._data.data }}</span>
     </li>
   </ul>
 </block>

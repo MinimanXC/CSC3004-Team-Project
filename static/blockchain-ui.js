@@ -1,7 +1,6 @@
 const blocks = document.querySelectorAll(".block");
 blocks.forEach(
   // Make selected block active
-
   (block) =>
     (block.onclick = () => {
       document.querySelectorAll(".block").forEach((block) => {
@@ -32,12 +31,30 @@ function invalidateBC() {
       data: data
     })
   )).then(res => {
-    if (res.data == false) {
+    console.log(res.data)
+    if (res.data[0] == false) {
+      invalid_block_id = res.data[1]
+
+      // Change valid icon to invalid
       document.getElementById("validity-img").src = "/static/invalid.png";
+      
+      // Display comment to below invalid.png on which block was tampered
+      comment = "Block " + invalid_block_id + " has been tampered with!"
+      document.getElementById("invalidate-comment").innerHTML = comment;
+
+      // Disable invalidate blockchain button since its already invalidated
       document.getElementById("invalidate-btn").disabled = true;
-    } else {
-      document.getElementById("validity-img").src = "/static/valid.png";
+
+      // Add red highlight around invalid block and scroll to its view
+      document.getElementById("block-"+invalid_block_id).classList.add("active-invalid");
+      document.getElementById("block-"+invalid_block_id).scrollIntoView({ block: 'end',  behavior: 'smooth' });
+
+      // Replace hash and modified data of invalid block
+      document.getElementById("block-" + invalid_block_id + "-hash").innerHTML = res.data[2];
+      document.getElementById("block-" + invalid_block_id + "-data").innerHTML = res.data[3];
+
     }
+    
   }).catch(error => console.error('Error:', error));
 
 }
