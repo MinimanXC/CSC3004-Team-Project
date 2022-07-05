@@ -1,10 +1,16 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1 class="display-1 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span>
-</h1>
-<a href="" target="_blank"><button class="btn">Add New Entry</button></a>
+
+{% if data|length == 0 %}
+<h1 class="display-1 h2 mt-5">Empty Blockchain <span id="nrBlocks"></span></h1>
+{% else %}
+<h1 class="display-1 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span></h1>
+{% endif %}
+
+<!-- <a href="" target="_blank"><button class="btn">Add New Entry</button></a> -->
 <p></p>
 
+{% if data|length > 0 %}
 <blockchain class="d-flex align-items-center">
 <!-- Block 1-->
 {% for item in data %}
@@ -55,5 +61,6 @@
 
 {% endfor %}
 </blockchain>
+{% endif %}
 
 {% endblock content %}

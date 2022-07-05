@@ -107,10 +107,11 @@ class bc_server():
             # Set up acknowledgement document for clients to increase count
             self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).set({'bc_ack': 0})
 
-            self.send_blockchain_copy()
-
             # Start polling for acknowledgement messages sent by clients that has requested for a copy of the blockchain
             self.poll_blockchain_ack() 
+
+            # Initiate sending of entire Blockchain to client
+            self.send_blockchain_copy()
 
             # !! Do not release callback as need to indefinitely check for addition of new users to the system
     
@@ -216,7 +217,7 @@ class bc_server():
     # Once done assigning lock to client, remove its request from the list of requestors
     def remove_request_lock(self, doc_id, user_type):
         request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection('requestors')
-        requestor = str(user_type) + '_' + str(doc_id)
+        requestor = str(doc_id)
 
         request_lock_coll.document(requestor).delete()
 
@@ -272,32 +273,17 @@ class bc_server():
     
     # Add details provided by client to Blockchain
     def add_block_to_blockchain(self, new_block_dict):
-        new_block = {
-            'added_time': firestore.SERVER_TIMESTAMP,
-            'block_hash': "test this hash",
-            'data': new_block_dict,
-            'nonce': 12345,
-            'prev_hash': "test prev hash"
-        }
-
-        ### TO-DO: Execute Functions to add Block to Blockchain
         self.blockchain.addBlock(Block(new_block_dict))
 
         print("Added Block to Blockchain!")
 
         # Once Block successfully added to Blockchain, send Block Details to clients
-        self.send_block_to_clients(new_block)
+        self.send_block_to_clients(new_block_dict)
 
     # Send new Block added to Blockchain to Client
     def send_block_to_clients(self, new_block):
         new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
         new_block_doc.set(new_block)
-
-        new_block_avail_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
-        new_block_avail_doc.set({
-            'new_available': 0,
-            'block_added_time': firestore.SERVER_TIMESTAMP
-        })
 
         print("Sent Block to Clients! ") # TODO: Add count validation check, due to multiple prints
 
@@ -318,7 +304,7 @@ class bc_server():
     def on_ack_snapshot(self, doc_snapshot, changes, read_time):
         curr_ack = doc_snapshot[0].get('ack')
 
-        # Ensure lock is set back to available (0) and assigned client releases the lock before releasing callback
+        # Ensure all clients have acknowledged before releasing callback
         if (curr_ack == self.clients_count):
             print("Clients ack-ed") # TODO: Add count validation check, due to multiple prints
             self.ack_callback_done.set()

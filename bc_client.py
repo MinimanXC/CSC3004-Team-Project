@@ -55,17 +55,21 @@ BLOCKCHAIN_COPY = "blockchain_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_PATH = "blockchain.bc" # To change to persistent storage directory before deployment 
 
+try:
+    # Initialise Firebase SDK
+    cred = credentials.Certificate("firebase-auth.json")
+    firebase_admin.initialize_app(cred)
+except:
+    print("Error initialising Firebase")
+    
 class bc_client():
 
-    def __init__(self):
-        # Initialise Firebase SDK
-        self.cred = credentials.Certificate("firebase-auth.json")
-        firebase_admin.initialize_app(self.cred)
+    def __init__(self, client_id=1):
         # Initialize firestore instance
         self.db = firestore.client()
 
         self.lock = -1
-        self.curr_client_id = 1
+        self.curr_client_id = client_id
         self.user_type = 'client' # Either client or supplier
         self.curr_client = self.user_type + '_' + str(self.curr_client_id)
 
@@ -89,9 +93,9 @@ class bc_client():
     # If not, make a request to server to send a copy over
     def check_new_user(self):
         if not (os.path.exists(BLOCKCHAIN_PATH)):
-            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_email)
+            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_id)
             bc_request_details = {
-                'client_id' : self.curr_client_email,
+                'client_id' : self.curr_client_id,
                 'request_time' : firestore.SERVER_TIMESTAMP,
                 'user_type': self.user_type
             }
@@ -130,14 +134,14 @@ class bc_client():
 
     # ====== 2. Execute when user executes an action (thus adding a block to blockchain) ======
     # Request block from server before adding block to temp_block
-    def request_lock(self):
+    def request_lock(self, client_id):
         # Check User collection and assign client an ID
         # Thus, the document to be inserted as in 'requestor' collection will be 'client_<client_id>'
         requestor = 'requestors'
-        client = 'client_' + str(1)
-        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(requestor).document(client)
+        self.curr_client_id = client_id
+        request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection(requestor).document(self.curr_client_id)
         new_request_details = {
-            'client_id' : 1, 
+            'client_id' : self.curr_client_id, 
             'request_time' : firestore.SERVER_TIMESTAMP,
             'user_type': self.user_type
         }
@@ -152,7 +156,7 @@ class bc_client():
         items = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
         self.lock = (items.to_dict()).get('lock')
         self.lock_client = (items.to_dict()).get('assigned_client')
-        print('> Current Lock State: ', self.lock)
+        print('> Current Lock State: ', self.lock, 'Assigned client: ', self.lock_client)
         
         if (self.lock != -1 and self.lock_client != self.curr_client_id):
 
@@ -162,10 +166,8 @@ class bc_client():
 
                 # Ensure lock is -1 and assigned_user is this current user before executing other functions
 
-            if self.lock == -1 and self.curr_client_id == self.lock_client:
-                return True
-
-        return self.lock
+        if self.lock == -1 and self.curr_client_id == self.lock_client:
+            return True
 
     # Initiate threading to poll for changes to lock_availability document values
     def poll_lock(self):
@@ -221,6 +223,7 @@ class bc_client():
         )
 
         print("Sent completion of adding New Block Details! ")
+        self.poll_new_block()
 
     # ====== 4. Execute after login to check if server has sent over a new block ======
     # Check if server has sent a new Block to add to Blockchain
@@ -263,10 +266,12 @@ class bc_client():
             })
             print("[Added new block to Blockchain] Sent acknowledgement! ")
 
-            ## Print Blockchain after adding new Block
-            # with open(BLOCKCHAIN_PATH, 'rb') as bc_file:
-            #     bc = pickle.load(bc_file)
-            #     print(bc.printChain())
+    # 5. Returns the Blockchain saved in .bc file
+    def get_saved_blockchain(self):
+        with open(BLOCKCHAIN_PATH, 'rb') as bc_file:
+            bc = pickle.load(bc_file)
+
+        return bc
 
     # Initiate threading to poll for changes to request_copy document values
     def pollRequest(self):

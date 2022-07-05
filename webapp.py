@@ -1,12 +1,14 @@
+from base64 import decode
 from http import client
 from flask import Flask, render_template, session, request, redirect, flash, jsonify
 from blockchain import *
 from flask_cors import CORS
 import pyrebase
-import bc_client
+from bc_client import bc_client
+import threading 
+import ast
 
 app = Flask(__name__)
-
 cors = CORS(app)
 
 config = {
@@ -24,7 +26,8 @@ firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 
 app.secret_key = 'secret'
-
+curr_user = ''
+bc = ''
 
 @app.route('/', methods=['POST', 'GET'])
 def login():
@@ -44,31 +47,64 @@ def login():
 
 @app.route('/home', methods=['POST', 'GET'])
 def home():
+    global curr_user
+    curr_user = session['user']
+    global bc
+    bc = bc_client(curr_user)
+    bc.check_new_user()
+    
     return render_template('home.html')
-
 
 @app.route("/receiver", methods=["POST", 'GET'])
 def postME():
     data = request.get_data()
-    print(str("dsadssad") + str(data))
-    curr_user = session['user']
-    print(curr_user)
+    print("Data: ", str(data), "\nUser: ", curr_user)
+    decoded_dict = convert_data_to_dict(data)
 
+    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,decoded_dict,))
+    add_data_thread.daemon = True
+    add_data_thread.start()
+    
     # uid = auth.get_account_info(user['idToken'])
 
     return data
 
+def convert_data_to_dict(data):
+    decoded_data = ast.literal_eval(data.decode('UTF-8'))
+    print(decoded_data)
+    res_dict = {decoded_data[i]: decoded_data[i + 1] for i in range(0, len(decoded_data), 2)}
+    print(res_dict)
+    return res_dict
+
+def add_data_to_blockchain(user, data):
+    bc.request_lock(user)
+    lock = bc.check_lock()
+    if lock:
+        bc.send_new_block_details(user, data)
+
 @app.route('/index')
 def hello_world():
-    blockchain = Blockchain()
-    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+    # ====== To replace with viewing data from .bc file
+    # blockchain = Blockchain()
+    # testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
 
-    for i in range(5):
-        blockchain.addBlock(Block(testData[i]))
+    # for i in range(5):
+    #     blockchain.addBlock(Block(testData[i]))
 
     # blockchain.printChain()
-    chainList = blockchain.getChain()
+    global bc
+    if bc == '':
+        global curr_user
+        curr_user = session['user']
+        bc = bc_client(curr_user)
 
+    chainList = ""
+    try:
+        blockchain = bc.get_saved_blockchain()
+        chainList = blockchain.getChain()
+    except:
+        print("Error occurred trying to read blockchain data")
+    
     return render_template('index.html', data=chainList[::-1])
 
 
