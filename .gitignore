@@ -1,5 +1,6 @@
 # Ignore custom .bc files
 *.bc
+.bc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

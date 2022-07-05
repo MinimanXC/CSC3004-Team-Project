@@ -50,6 +50,7 @@ TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
 REQUEST_BLOCKCHAIN = "request_blockchain"
 REQUEST_COPY = "request_copy"
+BLOCKCHAIN_BACKUP = "blockchain_backup"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_COPY = "blockchain_copy"
 
@@ -64,7 +65,6 @@ class bc_server():
 
         # Attempt to load the chain
         self.blockchain = self.loadChain()
-        #print("TESTTESTTESTTESTTTEST",self.blockchain.printChain())
 
         self.lock = -1
         self.clients_count = 10
@@ -187,7 +187,7 @@ class bc_server():
             print("While handling requests: ", e)
 
         if (requests_list):
-            requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time (XAVIER)
+            requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
             self.earliest_requestor = requests_list[0].get('client_id')
             self.earliest_requestor_type = requests_list[0].get('user_type')
             print(f'> Requestor: {self.earliest_requestor}, Requestor Type: {self.earliest_requestor_type}')
@@ -339,9 +339,15 @@ class bc_server():
                 print("\n------------------------")
             return savedChain
         except:
-            print("There is no backup of the chain (or an error occured, please try again)!")
-            self.requestBackup()
-            return Blockchain() # Return an empty blockchain temporarily. If no backup, blockchain is empty.
+            print("There is no local backup of the chain. If this seems wrong, it means local copy of the blockchain has been compromised!")
+
+            backupCount = len(self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').get())
+            if backupCount > 0:
+                print("Attempting to retrieve cloud backup of the chain...")
+                self.requestBackup()
+            else:
+                print("Creating a new empty chain...")
+                return Blockchain() # Return an empty blockchain temporarily. If no backup, blockchain is empty.
 
     def requestBackup(self):
         self.db.collection(BLOCK_COLL).document(REQUEST_COPY).set({})
@@ -351,8 +357,7 @@ class bc_server():
     def pollRequestResponse(self):
         # Create an Event for notifying main Thread
         self.blockchainReqCallbackDone = threading.Event()
-        self.blockchainReqResDoc = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc')
-
+        self.blockchainReqResDoc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc')
         
         # Watch the document for changes
         self.copyResponseDocWatch = self.blockchainReqResDoc.on_snapshot(self.onResponseSnapshot)
@@ -370,22 +375,40 @@ class bc_server():
         except Exception as e:
             print("While handling reponse: ", e)
 
-        if (response_list):
-            response_list.sort(key=lambda x:x['request_time']) # sort by earliest request time (XAVIER)
-            self.backupBlob = response_list[len(response_list) - 1].get('blockchain')
-            self.blockchain = pickle.loads(self.backupBlob) # If a backup exists, overwrite the empty blockchain with the saved blockchain
-            print("Blockchain has been updated with backup data from", response_list[len(response_list) - 1].get('clientID'))
-            print(self.blockchain.printChain())
+        if response_list:
+            response_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
+
+            length = 0
+            longestBC = None
+            clientID = "Nobody" # Variable used for printing. Remove if no longer printing logs
+
+            for entry in response_list: # Iterate through every backup entry
+                bcBlob = entry.get('blockchain')
+                bc = pickle.loads(bcBlob) # Unblobify the raw data to blockchain form
+
+                if length == 0: # Base case
+                    length = bc.chain.size()
+                    longestBC = bc
+                    clientID = entry.get('clientID')
+
+                if bc.chain.size() > length: # If a blockchain is longer than current longest
+                    length = bc.chain.size()
+                    longestBC = bc
+                    clientID = entry.get('clientID')
+
+            print("Blockchain has been updated with cloud backup data from", clientID)
+            print(longestBC.printChain())
             # Pickling the chain
             saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
             # Write object into file
-            pickle.dump(self.blockchain, saveFile)                     
+            pickle.dump(longestBC, saveFile)                     
             saveFile.close()
 
-            for doc in coll_snapshot:
-                self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document(doc.id).delete()
+            # Uncomment if backups need to be deleted by server
+            # for doc in coll_snapshot:
+            #     self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').document(doc.id).delete()
+            # self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).delete()
 
-            self.db.collection(BLOCK_COLL).document(REQUEST_COPY).delete()
             self.blockchainReqCallbackDone.set() # Stop the thread
 
 

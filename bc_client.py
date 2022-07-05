@@ -51,6 +51,7 @@ TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
 REQUEST_BLOCKCHAIN = "request_blockchain"
 REQUEST_COPY = "request_copy"
+BLOCKCHAIN_BACKUP = "blockchain_backup"
 BLOCKCHAIN_COPY = "blockchain_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_PATH = "savedChain.bc" # To change to persistent storage directory before deployment 
@@ -75,7 +76,7 @@ class bc_client():
 
         self.curr_client_email = 'test@test.com'
 
-        self.pollRequest()
+        #self.pollRequest()
         # self.main()
 
     def main(self):
@@ -257,6 +258,18 @@ class bc_client():
             
             self.new_block_callback_done.set()
 
+            # Upload blockchain blob to cloud for backup purposes (NEW)
+            bcBlob = pickle.dumps(bc, protocol=pickle.HIGHEST_PROTOCOL)
+            requestBackupColl = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').document(str(self.curr_client_id))
+            #requestBackupColl = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').document('syabil@xavier.com') # This line is for testing purposes
+            requestDetails = {
+                'request_time' : firestore.SERVER_TIMESTAMP,
+                'blockchain' : bcBlob,
+                'clientID' : self.curr_client_id
+            }
+            requestBackupColl.set(requestDetails)
+            print("Uploaded blockchain backup to Firebase!")
+
             # Increase ack count
             self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK)
             ack_count = self.ack_doc.get().get('ack')
@@ -273,33 +286,45 @@ class bc_client():
 
         return bc
 
-    # Initiate threading to poll for changes to request_copy document values
-    def pollRequest(self):
-        # Create an Event for notifying main Thread
-        self.callbackDone = threading.Event()
-        copyReqDoc = self.db.collection(BLOCK_COLL).document(REQUEST_COPY)
+    # # Initiate threading to poll for changes to request_copy document values
+    # def pollRequest(self):
+    #     # Create an Event for notifying main Thread
+    #     self.callbackDone = threading.Event()
+    #     copyReqDoc = self.db.collection(BLOCK_COLL).document(REQUEST_COPY)
 
-        # Watch the document for changes
-        self.copyRequestDocWatch = copyReqDoc.on_snapshot(self.onRequestSnapshot)
+    #     # Watch the document for changes
+    #     self.copyRequestDocWatch = copyReqDoc.on_snapshot(self.onRequestSnapshot)
     
-    # Callback function to capture changes to copy request
-    def onRequestSnapshot(self, doc_snapshot, changes, read_time):
-        try: 
-            saveFile = open('savedChain.bc', 'rb') # TODO: Change the file path when using Docker Persistent Storage
-            savedChain = pickle.load(saveFile)
-             # Serialize Blockchain before sending to Client
-            bcBlob = pickle.dumps(savedChain, protocol=pickle.HIGHEST_PROTOCOL)
-            requestBackupColl = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document('client_'+str(self.curr_client_id))
-            requestDetails = {
-                'request_time' : firestore.SERVER_TIMESTAMP,
-                'blockchain' : bcBlob,
-                'clientID' : self.curr_client_id
-            }
-            requestBackupColl.set(requestDetails)
-            saveFile.close() # Close the file
-            self.callbackDone.set() # Stop the thread
-        except:
-            print("Client %s has no backup of the chain (or an error occured, please try again)!" % self.curr_client_id)
+    # # Callback function to capture changes to copy request
+    # def onRequestSnapshot(self, doc_snapshot, changes, read_time):
+    #     try: 
+    #         saveFile = open('savedChain_1.bc', 'rb') # TODO: Change the file path when using Docker Persistent Storage
+    #         savedChain = pickle.load(saveFile)
+    #         # Serialize Blockchain before sending to Client
+    #         bcBlob = pickle.dumps(savedChain, protocol=pickle.HIGHEST_PROTOCOL)
+    #         requestBackupColl = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document('client_xavier')
+    #         requestDetails = {
+    #             'request_time' : firestore.SERVER_TIMESTAMP,
+    #             'blockchain' : bcBlob,
+    #             'clientID' : self.curr_client_id
+    #         }
+    #         requestBackupColl.set(requestDetails)
+    #         saveFile.close() # Close the file
+    #         self.callbackDone.set() # Stop the thread
+    #     except:
+    #         # If file does not exist, write empty blockchain blob to database
+    #         # Serialize Blockchain before sending to Client
+    #         bcBlob = pickle.dumps(Blockchain(), protocol=pickle.HIGHEST_PROTOCOL)
+    #         requestBackupColl = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document('client_xavier')
+    #         requestDetails = {
+    #             'request_time' : firestore.SERVER_TIMESTAMP,
+    #             'blockchain' : bcBlob,
+    #             'clientID' : self.curr_client_id
+    #         }
+    #         requestBackupColl.set(requestDetails)
+    #         self.callbackDone.set() # Stop the thread
+
+    #         print("Client %s has no backup of the chain." % self.curr_client_id)
 
 if __name__ == '__main__':
     bc_client()

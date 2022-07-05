@@ -18,7 +18,7 @@ venv\Scripts\activate
 
 **2. Apply requirements.txt**
 ```
-pip install -r requirements.txt 
+pip install -r requirements.txt (Ensure python is version >= 3.0)
 ```
 
 <br>

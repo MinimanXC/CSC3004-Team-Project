@@ -158,7 +158,7 @@ class Blockchain():
             
         
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 #     # DIFFICULTY = 4 # Const var to enforce number of zeros in hash. Remove if no longer mining
 
 #     # b0 = Block()
@@ -178,14 +178,14 @@ if __name__ == '__main__':
 #     # print(b2)
 #     # print(b3)
     
-    blockchain = Blockchain()
-    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+    # blockchain = Blockchain()
+    # testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
 
-    for i in range(5):
-        blockchain.addBlock(Block(testData[i]))
+    # for i in range(5):
+    #     blockchain.addBlock(Block(testData[i]))
 
-    blockchain.printChain()
-    print("The blockchain's validity is", blockchain.isValid())
+    # blockchain.printChain()
+    # print("The blockchain's validity is", blockchain.isValid())
 
 #     # Pickling the chain
 #     saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
@@ -196,10 +196,10 @@ if __name__ == '__main__':
 
 #     # Trying to invalidate the block to test validity function
     
-    blockchain.chain.head.prev.data.setData("Yo mama")
-    #blockchain.chain.head.prev.data.mine(0)
-    blockchain.printChain()
-    print("The blockchain's validity is", blockchain.isValid())
+    # blockchain.chain.head.prev.data.setData("Yo mama")
+    # #blockchain.chain.head.prev.data.mine(0)
+    # blockchain.printChain()
+    # print("The blockchain's validity is", blockchain.isValid())
 
 #     # Read in binary mode (Important)
 #     saveFile = open('savedChain.bc', 'rb')     
