@@ -1,3 +1,4 @@
+from base64 import decode
 from http import client
 from flask import Flask, render_template, session, request, redirect, flash, jsonify
 from blockchain import *
@@ -5,6 +6,7 @@ from flask_cors import CORS
 import pyrebase
 from bc_client import bc_client
 import threading 
+import ast
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -57,14 +59,22 @@ def home():
 def postME():
     data = request.get_data()
     print("Data: ", str(data), "\nUser: ", curr_user)
+    decoded_dict = convert_data_to_dict(data)
 
-    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,data,))
+    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,decoded_dict,))
     add_data_thread.daemon = True
     add_data_thread.start()
     
     # uid = auth.get_account_info(user['idToken'])
 
     return data
+
+def convert_data_to_dict(data):
+    decoded_data = ast.literal_eval(data.decode('UTF-8'))
+    print(decoded_data)
+    res_dict = {decoded_data[i]: decoded_data[i + 1] for i in range(0, len(decoded_data), 2)}
+    print(res_dict)
+    return res_dict
 
 def add_data_to_blockchain(user, data):
     bc.request_lock(user)
