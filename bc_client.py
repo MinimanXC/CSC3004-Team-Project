@@ -53,7 +53,7 @@ REQUEST_BLOCKCHAIN = "request_blockchain"
 REQUEST_COPY = "request_copy"
 BLOCKCHAIN_COPY = "blockchain_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
-BLOCKCHAIN_PATH = "blockchain.bc" # To change to persistent storage directory before deployment 
+BLOCKCHAIN_PATH = "savedChain.bc" # To change to persistent storage directory before deployment 
 
 try:
     # Initialise Firebase SDK

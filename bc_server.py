@@ -381,6 +381,10 @@ class bc_server():
             # Write object into file
             pickle.dump(self.blockchain, saveFile)                     
             saveFile.close()
+
+            for doc in coll_snapshot:
+                self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document(doc.id).delete()
+
             self.db.collection(BLOCK_COLL).document(REQUEST_COPY).delete()
             self.blockchainReqCallbackDone.set() # Stop the thread
 

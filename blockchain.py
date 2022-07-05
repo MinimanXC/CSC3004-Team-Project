@@ -121,7 +121,7 @@ class Blockchain():
         block.mine(self.difficulty) # Getting difficulty issues because im not updating the block id at this point in time
 
     def isValid(self) -> bool:
-        #print(self.chain.toArray())
+        # Temporarily convert reverse linked list to array to have an easier time iterating
         chainList = self.chain.toArray()
 
         for i in range(0, len(chainList) - 1): # Iterate through each block, ignoring the genesis block (the last element in the array)
@@ -143,6 +143,14 @@ class Blockchain():
     def getChain(self) -> list[object]:
         chainList = self.chain.toArray()
         return chainList
+
+    # Function for demo purposes, to test and proof validity of chain. DO NOT CALL OTHERWISE!!!
+    def breakChain(self, printChain=False):
+        if self.chain.size() > 1: # Blockchain must have more than 1 block for validity to work
+            self.chain.head.prev.data.setData("This block has been modified!")
+            if printChain:
+                self.printChain()
+            
         
 
 # if __name__ == '__main__':
