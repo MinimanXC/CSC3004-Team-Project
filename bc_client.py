@@ -286,45 +286,5 @@ class bc_client():
 
         return bc
 
-    # # Initiate threading to poll for changes to request_copy document values
-    # def pollRequest(self):
-    #     # Create an Event for notifying main Thread
-    #     self.callbackDone = threading.Event()
-    #     copyReqDoc = self.db.collection(BLOCK_COLL).document(REQUEST_COPY)
-
-    #     # Watch the document for changes
-    #     self.copyRequestDocWatch = copyReqDoc.on_snapshot(self.onRequestSnapshot)
-    
-    # # Callback function to capture changes to copy request
-    # def onRequestSnapshot(self, doc_snapshot, changes, read_time):
-    #     try: 
-    #         saveFile = open('savedChain_1.bc', 'rb') # TODO: Change the file path when using Docker Persistent Storage
-    #         savedChain = pickle.load(saveFile)
-    #         # Serialize Blockchain before sending to Client
-    #         bcBlob = pickle.dumps(savedChain, protocol=pickle.HIGHEST_PROTOCOL)
-    #         requestBackupColl = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document('client_xavier')
-    #         requestDetails = {
-    #             'request_time' : firestore.SERVER_TIMESTAMP,
-    #             'blockchain' : bcBlob,
-    #             'clientID' : self.curr_client_id
-    #         }
-    #         requestBackupColl.set(requestDetails)
-    #         saveFile.close() # Close the file
-    #         self.callbackDone.set() # Stop the thread
-    #     except:
-    #         # If file does not exist, write empty blockchain blob to database
-    #         # Serialize Blockchain before sending to Client
-    #         bcBlob = pickle.dumps(Blockchain(), protocol=pickle.HIGHEST_PROTOCOL)
-    #         requestBackupColl = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document('client_xavier')
-    #         requestDetails = {
-    #             'request_time' : firestore.SERVER_TIMESTAMP,
-    #             'blockchain' : bcBlob,
-    #             'clientID' : self.curr_client_id
-    #         }
-    #         requestBackupColl.set(requestDetails)
-    #         self.callbackDone.set() # Stop the thread
-
-    #         print("Client %s has no backup of the chain." % self.curr_client_id)
-
 if __name__ == '__main__':
     bc_client()
