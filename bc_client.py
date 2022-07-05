@@ -158,10 +158,10 @@ class bc_client():
         self.lock_client = (items.to_dict()).get('assigned_client')
         print('> Current Lock State: ', self.lock, 'Assigned client: ', self.lock_client)
         
-        if (self.lock != -1 and self.lock_client != self.curr_client_id):
+        if (self.lock != -1 or self.lock_client != self.curr_client_id):
 
             self.poll_lock() # Set callback
-            while self.lock != -1 and self.curr_client_id != self.lock_client:
+            while self.lock != -1 or self.curr_client_id != self.lock_client:
                 time.sleep(2)
 
                 # Ensure lock is -1 and assigned_user is this current user before executing other functions

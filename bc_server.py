@@ -274,7 +274,8 @@ class bc_server():
     # Add details provided by client to Blockchain
     def add_block_to_blockchain(self, new_block_dict):
         self.blockchain.addBlock(Block(new_block_dict))
-
+        self.saveChain(self.blockchain)
+        
         print("Added Block to Blockchain!")
 
         # Once Block successfully added to Blockchain, send Block Details to clients
