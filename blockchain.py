@@ -164,13 +164,13 @@ class Blockchain():
                 self.printChain()
 
 # Uncomment and run to test only the blockchain portion of the code
-if __name__ == '__main__':
-    blockchain = Blockchain()
-    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
-    for i in range(5):
-        blockchain.addBlock(Block(testData[i]))
-    blockchain.printChain()
-    print("The blockchain's validity is", blockchain.isValid())
+# if __name__ == '__main__':
+#     blockchain = Blockchain()
+#     testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+#     for i in range(5):
+#         blockchain.addBlock(Block(testData[i]))
+#     blockchain.printChain()
+#     print("The blockchain's validity is", blockchain.isValid())
 
-    blockchain.breakChain(True)
-    print("The blockchain's validity is", blockchain.isValid())
+#     blockchain.breakChain(True)
+#     print("The blockchain's validity is", blockchain.isValid())
