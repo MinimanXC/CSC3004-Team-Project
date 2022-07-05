@@ -77,6 +77,12 @@ def convert_data_to_dict(data):
     return res_dict
 
 def add_data_to_blockchain(user, data):
+    global bc
+    if bc == "":
+        global curr_user
+        curr_user = session['user']
+        bc = bc_client(curr_user)
+
     bc.request_lock(user)
     lock = bc.check_lock()
     if lock:
