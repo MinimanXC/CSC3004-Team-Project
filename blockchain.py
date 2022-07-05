@@ -121,21 +121,26 @@ class Blockchain():
         block.mine(self.difficulty) # Getting difficulty issues because im not updating the block id at this point in time
 
     def isValid(self) -> bool:
-        # Temporarily convert reverse linked list to array to have an easier time iterating
-        chainList = self.chain.toArray()
+        # If no blocks or only genesis block, chain will always be valid
+        if self.chain.size() <= 1:
+            return True
+        else:
+            temp = self.chain.head # Head will always be most recent block. Tail will always be genesis
 
-        for i in range(0, len(chainList) - 1): # Iterate through each block, ignoring the genesis block (the last element in the array)
-            prevHashInBlock = chainList[i].getPreviousCalculatedHash()
-            hashInPrevBlock = chainList[i + 1].getCalculatedHash()
+            while temp is not None:
+                prevHashInBlock = temp.data.getPreviousCalculatedHash()
+                if temp.prev is not None:
+                    hashInPrevBlock = temp.prev.data.getCalculatedHash()
+                else:
+                    hashInPrevBlock = GENESIS_HASH
 
-            # Uncomment only if mining is needed again
-            # if prevHashInBlock != hashInPrevBlock or hashInPrevBlock[:self.difficulty] != '0' * self.difficulty:
-            #     return False
+                if prevHashInBlock != hashInPrevBlock:
+                    return False
 
-            if prevHashInBlock != hashInPrevBlock:
-                return False
+                temp = temp.prev # Line to iterate through the LL. Treat as i++
 
-        return True
+            return True
+        
 
     def printChain(self) -> None:
         self.chain.printList()
@@ -153,7 +158,7 @@ class Blockchain():
             
         
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 #     # DIFFICULTY = 4 # Const var to enforce number of zeros in hash. Remove if no longer mining
 
 #     # b0 = Block()
@@ -173,14 +178,14 @@ class Blockchain():
 #     # print(b2)
 #     # print(b3)
     
-#     blockchain = Blockchain()
-#     testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+    blockchain = Blockchain()
+    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
 
-#     for i in range(5):
-#         blockchain.addBlock(Block(testData[i]))
+    for i in range(5):
+        blockchain.addBlock(Block(testData[i]))
 
-#     blockchain.printChain()
-#     print("The blockchain's validity is", blockchain.isValid())
+    blockchain.printChain()
+    print("The blockchain's validity is", blockchain.isValid())
 
 #     # Pickling the chain
 #     saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
@@ -191,10 +196,10 @@ class Blockchain():
 
 #     # Trying to invalidate the block to test validity function
     
-#     blockchain.chain.head.prev.data.setData("Yo mama")
-#     #blockchain.chain.head.prev.data.mine(0)
-#     blockchain.printChain()
-#     print("The blockchain's validity is", blockchain.isValid())
+    blockchain.chain.head.prev.data.setData("Yo mama")
+    #blockchain.chain.head.prev.data.mine(0)
+    blockchain.printChain()
+    print("The blockchain's validity is", blockchain.isValid())
 
 #     # Read in binary mode (Important)
 #     saveFile = open('savedChain.bc', 'rb')     

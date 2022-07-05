@@ -48,6 +48,7 @@ class LinkedList:
                 temp = temp.prev
             print("[TAIL] (Genesis Block)\n")
 
+    # Function previously called by isValid() in blockchain.py. Not in use atm. Leaving it in, in case someone needs to convert the linkedlist to a list
     # Returns the data in the LinkedList as an Array in reverse order. E.g: INPUT: LinkedList - [0, 1, 2, 3, 4] OUTPUT: Array - [4, 3, 2, 1, 0]
     def toArray(self) -> list[object]:
         if self.size() <= 0:
