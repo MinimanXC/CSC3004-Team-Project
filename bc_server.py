@@ -49,7 +49,6 @@ NEW_BLOCK_AVAIL = "new_block_available"
 TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
 REQUEST_BLOCKCHAIN = "request_blockchain"
-REQUEST_COPY = "request_copy"
 BLOCKCHAIN_BACKUP = "blockchain_backup"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_COPY = "blockchain_copy"
@@ -350,7 +349,7 @@ class bc_server():
                 return Blockchain() # Return an empty blockchain temporarily. If no backup, blockchain is empty.
 
     def requestBackup(self):
-        self.db.collection(BLOCK_COLL).document(REQUEST_COPY).set({})
+        self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).set({})
         self.pollRequestResponse()
 
     # Check if a new user is added to system and requested for a copy of the blockchain
