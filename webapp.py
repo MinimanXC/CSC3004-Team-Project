@@ -89,15 +89,7 @@ def add_data_to_blockchain(user, data):
         bc.send_new_block_details(user, data)
 
 @app.route('/index')
-def hello_world():
-    # ====== To replace with viewing data from .bc file
-    # blockchain = Blockchain()
-    # testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
-
-    # for i in range(5):
-    #     blockchain.addBlock(Block(testData[i]))
-
-    # blockchain.printChain()
+def blockchain_view():
     global bc
     if bc == '':
         global curr_user
@@ -113,6 +105,16 @@ def hello_world():
     
     return render_template('index.html', data=chainList[::-1])
 
+@app.route('/invalidatebc', methods=["POST", 'GET'])
+def invalidate_blockchain():
+    blockchain = bc.get_saved_blockchain()
+
+    print("!!! Breaking Chain")
+    blockchain.breakChain()
+    is_valid = blockchain.isValid()
+    print("Blockchain Validity: ", is_valid)
+
+    return jsonify(is_valid)
 
 @app.route('/logout')
 def logout():

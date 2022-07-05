@@ -12,7 +12,7 @@
   <div class="row">
     <div class="col-md-6">
       <h4 style="text-align: initial;">Blockchain Validity:
-        <img src="{{url_for('static', filename='valid.png')}}"/>
+        <img id="validity-img" src="{{url_for('static', filename='valid.png')}}"/>
       </h4>
     </div>
     <div class="col-md-6">
@@ -32,7 +32,7 @@
   <block class="card block" data-bs-toggle="collapse" aria-expanded="false">
   {% endif %}
   <div class="card-header">
-    <span class="display-4">Block {{ item._blockId }} </span>
+    <span class="display-5">Block {{ item._blockId }} </span>
     {% if loop.first %}
     <p class="text-success">(Genesis block)</p>
     {% else %}
