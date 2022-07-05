@@ -10,16 +10,19 @@ blocks.forEach(
     })
 );
 
+// on-click of "Invalidate Blockchain" button, show a confirmation popup
 const invalid_btn = document.querySelector("#invalidate-btn");
 invalid_btn.addEventListener("click", function () {
   let confirmAction = confirm("Confirm invalidating Blockchain?");
   if (confirmAction) {
-    invalidateBC();
+    invalidateBC(); // Executed only when user confirmed true
   }
 
 });
 
+// This function will submit a POST request to the backend codes and execute the function invalidate_blockchain()
 function invalidateBC() {
+  // Which function to be executed is through the fetch and path to the function
   fetch('http://127.0.0.1:5000/invalidatebc',{
     method: 'POST',
     headers: {
@@ -31,7 +34,7 @@ function invalidateBC() {
       data: data
     })
   )).then(res => {
-    console.log(res.data)
+    // Extract the data sent back from invalidate_blockchain() and display it out to the user
     if (res.data[0] == false) {
       invalid_block_id = res.data[1]
 

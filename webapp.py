@@ -48,10 +48,13 @@ def login():
 @app.route('/home', methods=['POST', 'GET'])
 def home():
     global curr_user
-    curr_user = session['user']
+    curr_user = session['user'] # For getting client id for requesting/assigning of lock (to add block)
     global bc
     bc = bc_client(curr_user)
-    bc.check_new_user()
+
+    # Checks if current user already has a copy of the blockchain, if not, 
+    # This function will request it from Server
+    bc.check_new_user() 
     
     return render_template('home.html')
 
@@ -59,8 +62,9 @@ def home():
 def postME():
     data = request.get_data()
     print("Data: ", str(data), "\nUser: ", curr_user)
-    decoded_dict = convert_data_to_dict(data)
+    decoded_dict = convert_data_to_dict(data) # Decode bytes data and convert to dictionary
 
+    # Use Threading as there will be multiple functions being executed tied to callback functions
     add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,decoded_dict,))
     add_data_thread.daemon = True
     add_data_thread.start()
@@ -69,16 +73,18 @@ def postME():
 
     return data
 
+# Decode bytes data received from request and convert it to a list
+# The list format is --> [medicine, price], thus will then be converted to a dictionary
 def convert_data_to_dict(data):
     decoded_data = ast.literal_eval(data.decode('UTF-8'))
-    print(decoded_data)
     res_dict = {decoded_data[i]: decoded_data[i + 1] for i in range(0, len(decoded_data), 2)}
-    print(res_dict)
+
     return res_dict
 
+# Will request lock from server first before a new block's data is sent over to the server
 def add_data_to_blockchain(user, data):
     global bc
-    if bc == "":
+    if bc == "": # in the event that bc_client was not properly initialised
         global curr_user
         curr_user = session['user']
         bc = bc_client(curr_user)
@@ -88,10 +94,11 @@ def add_data_to_blockchain(user, data):
     if lock:
         bc.send_new_block_details(user, data)
 
+# View for 'History' page which shows all the blocks in the Blockchain
 @app.route('/index')
 def blockchain_view():
     global bc
-    if bc == '':
+    if bc == '': # in the event that bc_client was not properly initialised
         global curr_user
         curr_user = session['user']
         bc = bc_client(curr_user)
@@ -107,23 +114,27 @@ def blockchain_view():
 
 @app.route('/invalidatebc', methods=["POST", 'GET'])
 def invalidate_blockchain():
+    # Use Blockchain that has already been saved in .bc file
     blockchain = bc.get_saved_blockchain()
 
     print("!!! Breaking Chain")
     blockchain.breakChain()
 
+    # Get the Blockchain that was modified
     chainList = blockchain.getChain()
     blockchain_len = len(chainList)
 
+    # Perform check to get which block was modified
     is_valid = blockchain.isValid()
     tampered = blockchain.tamperedCount
 
+    # Get the hash and data of modified block to update the block's view on UI
     tampered_block_hash = chainList[blockchain_len - tampered - 1]._hash
     tampered_block_data = chainList[blockchain_len - tampered - 1]._data
 
     print("Blockchain Validity: ", is_valid, " Tampered Block: ", tampered)
 
-    # Return to JavaScript function that called this function
+    # Return data back to JavaScript function that called this function
     return jsonify(is_valid, tampered, tampered_block_hash, tampered_block_data)
 
 @app.route('/logout')
