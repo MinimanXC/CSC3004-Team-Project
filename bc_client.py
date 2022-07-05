@@ -54,17 +54,21 @@ BLOCKCHAIN_COPY = "blockchain_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_PATH = "blockchain.bc" # To change to persistent storage directory before deployment 
 
+try:
+    # Initialise Firebase SDK
+    cred = credentials.Certificate("firebase-auth.json")
+    firebase_admin.initialize_app(cred)
+except:
+    print("Error initialising Firebase")
+    
 class bc_client():
 
-    def __init__(self):
-        # Initialise Firebase SDK
-        self.cred = credentials.Certificate("firebase-auth.json")
-        firebase_admin.initialize_app(self.cred)
+    def __init__(self, client_id=1):
         # Initialize firestore instance
         self.db = firestore.client()
 
         self.lock = -1
-        self.curr_client_id = 1
+        self.curr_client_id = client_id
         self.user_type = 'client' # Either client or supplier
         self.curr_client = self.user_type + '_' + str(self.curr_client_id)
 
@@ -85,9 +89,9 @@ class bc_client():
     # If not, make a request to server to send a copy over
     def check_new_user(self):
         if not (os.path.exists(BLOCKCHAIN_PATH)):
-            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_email)
+            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_id)
             bc_request_details = {
-                'client_id' : self.curr_client_email,
+                'client_id' : self.curr_client_id,
                 'request_time' : firestore.SERVER_TIMESTAMP,
                 'user_type': self.user_type
             }

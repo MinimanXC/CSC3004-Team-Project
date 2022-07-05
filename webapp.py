@@ -24,8 +24,8 @@ firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 
 app.secret_key = 'secret'
-
-bc = bc_client()
+curr_user = ''
+bc = ''
 
 @app.route('/', methods=['POST', 'GET'])
 def login():
@@ -45,16 +45,18 @@ def login():
 
 @app.route('/home', methods=['POST', 'GET'])
 def home():
+    global curr_user
+    curr_user = session['user']
+    global bc
+    bc = bc_client(curr_user)
     bc.check_new_user()
-    # bc.poll_new_block()
+    
     return render_template('home.html')
-
 
 @app.route("/receiver", methods=["POST", 'GET'])
 def postME():
     data = request.get_data()
-    print(str("dsadssad") + str(data))
-    curr_user = session['user']
+    print("Data: ", str(data), "\nUser: ", curr_user)
 
     add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,data,))
     add_data_thread.daemon = True
@@ -80,9 +82,18 @@ def hello_world():
     #     blockchain.addBlock(Block(testData[i]))
 
     # blockchain.printChain()
+    global bc
+    if bc == '':
+        global curr_user
+        curr_user = session['user']
+        bc = bc_client(curr_user)
 
-    blockchain = bc.get_saved_blockchain()
-    chainList = blockchain.getChain()
+    chainList = ""
+    try:
+        blockchain = bc.get_saved_blockchain()
+        chainList = blockchain.getChain()
+    except:
+        print("Error occurred trying to read blockchain data")
     
     return render_template('index.html', data=chainList[::-1])
 
