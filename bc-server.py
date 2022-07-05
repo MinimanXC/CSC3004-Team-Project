@@ -64,10 +64,6 @@ class bc_server():
         # Attempt to load the chain
         self.blockchain = self.loadChain()
 
-        # If loading of chain fails (aka doesn't exist), create a new empty blockchain object
-        if (self.blockchain == False):
-            self.blockchain = Blockchain()
-
         self.lock = -1
         self.clients_count = 10
         self.main()
@@ -350,7 +346,7 @@ class bc_server():
             return savedChain
         except:
             print("There is no backup of the chain (or an error occured, please try again)!")
-            return False
+            return Blockchain()
 
 
 if __name__ == '__main__':
