@@ -3,10 +3,10 @@ from flask import Flask, render_template, session, request, redirect, flash, jso
 from blockchain import *
 from flask_cors import CORS
 import pyrebase
-import bc_client
+from bc_client import bc_client
+import threading 
 
 app = Flask(__name__)
-
 cors = CORS(app)
 
 config = {
@@ -25,6 +25,7 @@ auth = firebase.auth()
 
 app.secret_key = 'secret'
 
+bc = bc_client()
 
 @app.route('/', methods=['POST', 'GET'])
 def login():
@@ -44,6 +45,8 @@ def login():
 
 @app.route('/home', methods=['POST', 'GET'])
 def home():
+    bc.check_new_user()
+    # bc.poll_new_block()
     return render_template('home.html')
 
 
@@ -52,23 +55,35 @@ def postME():
     data = request.get_data()
     print(str("dsadssad") + str(data))
     curr_user = session['user']
-    print(curr_user)
 
+    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,data,))
+    add_data_thread.daemon = True
+    add_data_thread.start()
+    
     # uid = auth.get_account_info(user['idToken'])
 
     return data
 
+def add_data_to_blockchain(user, data):
+    bc.request_lock(user)
+    lock = bc.check_lock()
+    if lock:
+        bc.send_new_block_details(user, data)
+
 @app.route('/index')
 def hello_world():
-    blockchain = Blockchain()
-    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+    # ====== To replace with viewing data from .bc file
+    # blockchain = Blockchain()
+    # testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
 
-    for i in range(5):
-        blockchain.addBlock(Block(testData[i]))
+    # for i in range(5):
+    #     blockchain.addBlock(Block(testData[i]))
 
     # blockchain.printChain()
-    chainList = blockchain.getChain()
 
+    blockchain = bc.get_saved_blockchain()
+    chainList = blockchain.getChain()
+    
     return render_template('index.html', data=chainList[::-1])
 
 

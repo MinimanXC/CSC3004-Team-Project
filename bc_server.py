@@ -215,7 +215,7 @@ class bc_server():
     # Once done assigning lock to client, remove its request from the list of requestors
     def remove_request_lock(self, doc_id, user_type):
         request_lock_coll = self.db.collection(BLOCK_COLL).document(REQUEST_LOCK).collection('requestors')
-        requestor = str(user_type) + '_' + str(doc_id)
+        requestor = str(doc_id)
 
         request_lock_coll.document(requestor).delete()
 
