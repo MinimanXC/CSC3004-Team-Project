@@ -49,6 +49,7 @@ NEW_BLOCK_AVAIL = "new_block_available"
 TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
 REQUEST_BLOCKCHAIN = "request_blockchain"
+REQUEST_COPY = "request_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_COPY = "blockchain_copy"
 
@@ -184,7 +185,7 @@ class bc_server():
             print("While handling requests: ", e)
 
         if (requests_list):
-            requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
+            requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time (XAVIER)
             self.earliest_requestor = requests_list[0].get('client_id')
             self.earliest_requestor_type = requests_list[0].get('user_type')
             print(f'> Requestor: {self.earliest_requestor}, Requestor Type: {self.earliest_requestor_type}')
@@ -351,37 +352,51 @@ class bc_server():
             return savedChain
         except:
             print("There is no backup of the chain (or an error occured, please try again)!")
+            self.requestBackup()
             return Blockchain()
 
     def requestBackup(self):
-        pass
+        self.db.collection(BLOCK_COLL).document(REQUEST_COPY).set({})
+        self.pollRequestResponse()
 
     # Check if a new user is added to system and requested for a copy of the blockchain
-    def poll_blockchain_request(self):
+    def pollRequestResponse(self):
         # Create an Event for notifying main Thread
-        self.blockchain_req_callback_done = threading.Event()
-        self.blockchain_req_doc = self.db.collection_group('blockchain_requestors')
+        self.blockchainReqCallbackDone = threading.Event()
+        self.blockchainReqResDoc = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc')
 
+        
         # Watch the document for changes
-        self.blockchain_requestors = []
-        self.blockchain_req_doc_watch = self.blockchain_req_doc.on_snapshot(self.on_blockchain_request_snapshot)
+        self.copyResponseDocWatch = self.blockchainReqResDoc.on_snapshot(self.onResponseSnapshot)
     
     # Callback function to capture changes to blockchain requests
-    def on_blockchain_request_snapshot(self, doc_snapshot, changes, read_time):
-        if doc_snapshot:
-            print("\nReceived new blockchain copy request")
-            self.blockchain_requestors.append(doc_snapshot[0].id)
-            self.no_bc_requestors = len(doc_snapshot) # Count for tallying acknowledgement message
+    def onResponseSnapshot(self, coll_snapshot, changes, read_time):
+        response_list = []
 
-            # Set up acknowledgement document for clients to increase count
-            self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).set({'bc_ack': 0})
+        try:
+            for response in coll_snapshot: # For each document in a sub collection
+                # print(requests.to_dict())
+                response_list.append(response.to_dict()) 
+            
+            print("\nReceived new blockchain backup copy")
+        except Exception as e:
+            print("While handling reponse: ", e)
 
-            self.send_blockchain_copy()
+        if (response_list):
+            response_list.sort(key=lambda x:x['request_time']) # sort by earliest request time (XAVIER)
+            self.backupBlob = response_list[len(response_list) - 1].get('blockchain')
+            self.backupChain = pickle.loads(self.backupBlob)
+            # self.backupChain.printChain()
+            # Pickling the chain
+            saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
+            # Write object into file
+            pickle.dump(self.backupChain, saveFile)                     
+            saveFile.close()
+            self.db.collection(BLOCK_COLL).document(REQUEST_COPY).delete()
+            self.blockchainReqCallbackDone.set() # Stop the thread
 
-            # Start polling for acknowledgement messages sent by clients that has requested for a copy of the blockchain
-            self.poll_blockchain_ack() 
 
-            # !! Do not release callback as need to indefinitely check for addition of new users to the system
+
 
 if __name__ == '__main__':
     bc_server()
