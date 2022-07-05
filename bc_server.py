@@ -64,6 +64,7 @@ class bc_server():
 
         # Attempt to load the chain
         self.blockchain = self.loadChain()
+        #print("TESTTESTTESTTESTTTEST",self.blockchain.printChain())
 
         self.lock = -1
         self.clients_count = 10
@@ -75,7 +76,7 @@ class bc_server():
         self.poll_blockchain_request()
         self.poll_lock()
         self.poll_requests()
-
+        
         # Indefinitely check that no one is holding lock or have any requests
         while True:
             time.sleep(2)
@@ -340,7 +341,7 @@ class bc_server():
         except:
             print("There is no backup of the chain (or an error occured, please try again)!")
             self.requestBackup()
-            return Blockchain()
+            return Blockchain() # Return an empty blockchain temporarily. If no backup, blockchain is empty.
 
     def requestBackup(self):
         self.db.collection(BLOCK_COLL).document(REQUEST_COPY).set({})
@@ -372,12 +373,13 @@ class bc_server():
         if (response_list):
             response_list.sort(key=lambda x:x['request_time']) # sort by earliest request time (XAVIER)
             self.backupBlob = response_list[len(response_list) - 1].get('blockchain')
-            self.backupChain = pickle.loads(self.backupBlob)
-            # self.backupChain.printChain()
+            self.blockchain = pickle.loads(self.backupBlob) # If a backup exists, overwrite the empty blockchain with the saved blockchain
+            print("Blockchain has been updated with backup data from", response_list[len(response_list) - 1].get('clientID'))
+            print(self.blockchain.printChain())
             # Pickling the chain
             saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
             # Write object into file
-            pickle.dump(self.backupChain, saveFile)                     
+            pickle.dump(self.blockchain, saveFile)                     
             saveFile.close()
             self.db.collection(BLOCK_COLL).document(REQUEST_COPY).delete()
             self.blockchainReqCallbackDone.set() # Stop the thread

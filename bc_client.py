@@ -292,7 +292,8 @@ class bc_client():
             requestBackupColl = self.db.collection(BLOCK_COLL).document(REQUEST_COPY).collection('savedChain.bc').document('client_'+str(self.curr_client_id))
             requestDetails = {
                 'request_time' : firestore.SERVER_TIMESTAMP,
-                'blockchain' : bcBlob
+                'blockchain' : bcBlob,
+                'clientID' : self.curr_client_id
             }
             requestBackupColl.set(requestDetails)
             saveFile.close() # Close the file
