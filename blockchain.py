@@ -97,6 +97,7 @@ class Block:
 class Blockchain():
 
     def __init__(self, difficulty=4) -> None:
+        self.tamperedCount = -1 # Init as -1 as 0 is Genesis Block
         self.difficulty = difficulty
         self.chain = LinkedList()
         self.addBlock(Block("This is the Genesis Block and the start of your transactions!"))
@@ -135,6 +136,12 @@ class Blockchain():
                     hashInPrevBlock = GENESIS_HASH
 
                 if prevHashInBlock != hashInPrevBlock:
+                    if temp.prev is not None:
+                        self.tamperedCount = temp.prev.data.getBlockID()
+                        print("Block", self.tamperedCount, "has been tampered with!")
+                    else: # This else statement is a 'just in case' condition and most likely won't ever trigger
+                        self.tamperedCount = 0
+                        print("The genesis hash of the Genesis Block has been tampered with!")
                     return False
 
                 temp = temp.prev # Line to iterate through the LL. Treat as i++
@@ -155,3 +162,15 @@ class Blockchain():
             self.chain.head.prev.data.setData("This block has been modified!")
             if printChain:
                 self.printChain()
+
+# Uncomment and run to test only the blockchain portion of the code
+if __name__ == '__main__':
+    blockchain = Blockchain()
+    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+    for i in range(5):
+        blockchain.addBlock(Block(testData[i]))
+    blockchain.printChain()
+    print("The blockchain's validity is", blockchain.isValid())
+
+    blockchain.breakChain(True)
+    print("The blockchain's validity is", blockchain.isValid())
