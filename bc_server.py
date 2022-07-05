@@ -115,13 +115,11 @@ class bc_server():
     
     # Send a copy of the current blockchain to client in pickle format
     def send_blockchain_copy(self):
-        # TO-DO: Replace with actual Blockchain Data
-        #sample_bc = {'hello': 'world'}
-
-        to_send = pickle.dumps(self.blockchain, protocol=pickle.HIGHEST_PROTOCOL)
+        # Serialize Blockchain before sending to Client
+        bc_to_send = pickle.dumps(self.blockchain, protocol=pickle.HIGHEST_PROTOCOL)
 
         self.blockchain_copy_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_COPY)
-        self.blockchain_copy_doc.set({u'bc': to_send})
+        self.blockchain_copy_doc.set({u'bc': bc_to_send})
 
         print("Sent Blockchain Copy !")
     
@@ -131,30 +129,36 @@ class bc_server():
         self.blockchain_ack_callback_done = threading.Event()
         self.blockchain_ack_doc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK)
 
+        self.ack_count = 0 # To ensure that actions relating to client's ack msg are only processed according to the number of ack to receive
+
         # Watch the document for changes
         self.blockchain_ack_doc_watch = self.blockchain_ack_doc.on_snapshot(self.on_blockchain_ack_snapshot)
     
     # Callback function to capture increase in acknowledge count
     def on_blockchain_ack_snapshot(self, doc_snapshot, changes, read_time):
-        if doc_snapshot:
-            ack_no = doc_snapshot[0].get('bc_ack')
-            
-            if ack_no == self.no_bc_requestors:
-                print("All requestors has received Blockchain copy")
+        for change in changes:
+            # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
+            if change.type.name == 'MODIFIED': 
+                if doc_snapshot:
+                    ack_no = doc_snapshot[0].get('bc_ack')
+                    self.ack_count += 1
 
-                # Remove callback function only when all requestors (clients) have acknowledged 
-                self.blockchain_ack_callback_done.set() 
+                    if ack_no == self.no_bc_requestors and self.ack_count == self.no_bc_requestors:
+                        print("All requestors has received Blockchain copy")
 
-                self.remove_blockchain_request()
+                        self.remove_blockchain_request()
+
+                        # Remove callback function only when all requestors (clients) have acknowledged
+                        self.blockchain_ack_callback_done.set()
 
     # Remove requests as it has been fulfilled
     def remove_blockchain_request(self):
-        self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_COPY).delete()
+        self.blockchain_copy_doc.delete()
         for requestors in self.blockchain_requestors:
             self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(requestors).delete()
+        self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).delete()
         self.blockchain_ack_doc.delete()
         print("Removed Blockchain Request and Acknowledgement")
-
 
     # Initiate threading to poll for new requests added to 'request_lock', 'requestors' collection
     # Check for any new requests submitted by client, if yes, process it
@@ -174,7 +178,8 @@ class bc_server():
             for requests in coll_snapshot:
                 # print(requests.to_dict())
                 requests_list.append(requests.to_dict()) 
-
+            
+            print("\nReceived new lock request")
         except Exception as e:
             print("While handling requests: ", e)
 
@@ -253,7 +258,7 @@ class bc_server():
         if doc_snapshot:
             temp_block = doc_snapshot[0]
             client_id = temp_block.get('client_id')
-            print(f'> Temp Block By: {client_id}')
+            print(f'> Temp Block By: {client_id}') # TODO: Add count validation check, due to multiple prints
 
             if self.earliest_requestor == client_id:
                 self.temp_block_callback_done.set()
@@ -262,7 +267,7 @@ class bc_server():
             
             self.add_block_to_blockchain(temp_block.to_dict())
         else:
-            print("No new Block details")
+            print("No new Block details") # TODO: Add count validation check, due to multiple prints
     
     # Add details provided by client to Blockchain
     def add_block_to_blockchain(self, new_block_dict):
@@ -293,7 +298,7 @@ class bc_server():
             'block_added_time': firestore.SERVER_TIMESTAMP
         })
 
-        print("Sent Block to Clients! ")
+        print("Sent Block to Clients! ") # TODO: Add count validation check, due to multiple prints
 
         # Start polling for acknowledgement message sent by clients
         self.poll_ack()
@@ -314,7 +319,7 @@ class bc_server():
 
         # Ensure lock is set back to available (0) and assigned client releases the lock before releasing callback
         if (curr_ack == self.clients_count):
-            print("Clients ack-ed")
+            print("Clients ack-ed") # TODO: Add count validation check, due to multiple prints
             self.ack_callback_done.set()
             
             # Once all clients have acknowledged, remove block details

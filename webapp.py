@@ -1,7 +1,9 @@
+from http import client
 from flask import Flask, render_template, session, request, redirect, flash, jsonify
 from blockchain import *
 from flask_cors import CORS
 import pyrebase
+import bc_client
 
 app = Flask(__name__)
 
@@ -49,6 +51,8 @@ def home():
 def postME():
     data = request.get_data()
     print(str("dsadssad") + str(data))
+    curr_user = session['user']
+    print(curr_user)
 
     # uid = auth.get_account_info(user['idToken'])
 
