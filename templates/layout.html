@@ -18,13 +18,13 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
         {% if title %}
-            <title>Flask Blog - {{ title }}</title>
+            <title>{{ title }}</title>
         {% else %}
-            <title>Flask Blog - {{ title }}</title>
+            <title>{{ title }}</title>
         {% endif %}
     </head>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-md navbar-dark">
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top">
       <div class="container-fluid">
         <a class="navbar-brand" href="#">SuppBlock Chain</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,5 +66,5 @@
         <!-- <footer class="fixed-bottom text-center p-2"></footer> -->      
     </body>
   <!-- Javascript for the UI -->
-  <script src="{{ url_for('static', filename='UI.js') }}"></script>
+  <script src="{{ url_for('static', filename='blockchain-ui.js') }}"></script>
 </html>

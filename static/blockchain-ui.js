@@ -11,8 +11,7 @@ blocks.forEach(
     })
 );
 
-// For getting number of blocks and displaying to user
-// setTimeout(() => {
-//   const numberOfBlocks = (document.querySelector("#nrBlocks").innerText =
-//     blocks.length);
-// }, 1000);
+const invalid_btn = document.querySelector("#invalidate-btn");
+invalid_btn.addEventListener("click", function () {
+  alert("Invalid btn");
+});

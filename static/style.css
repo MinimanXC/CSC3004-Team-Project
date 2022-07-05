@@ -3,6 +3,7 @@
   }
   body {
     background-color: gainsboro;
+    margin-top: 5rem !important;
   }
   .bg-dark-blue {
     background-color: #24292f;

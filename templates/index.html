@@ -2,14 +2,26 @@
 {% block content %}
 
 {% if data|length == 0 %}
-<h1 class="display-1 h2 mt-5">Empty Blockchain <span id="nrBlocks"></span></h1>
+<h2 class="display-1 h2 mt-5">Empty Blockchain <span id="nrBlocks"></span></h2>
 {% else %}
-<h1 class="display-1 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span></h1>
+<h2 class="display-1 h2 mt-5">Blocks on chain: <span id="nrBlocks">{{data|length}}</span></h2>
 {% endif %}
 
-<!-- <a href="" target="_blank"><button class="btn">Add New Entry</button></a> -->
-<p></p>
+<!--- BLOCKCHAIN Validity -->
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <h4 style="text-align: initial;">Blockchain Validity:
+        <img src="{{url_for('static', filename='valid.png')}}"/>
+      </h4>
+    </div>
+    <div class="col-md-6">
+        <button id="invalidate-btn" type="button" class="btn btn-danger float-end">Invalidate Blockchain</button>
+    </div>
+  </div>
+</div>
 
+<!--- BLOCKCHAIN Visualisation -->
 {% if data|length > 0 %}
 <blockchain class="d-flex align-items-center">
 <!-- Block 1-->
@@ -43,13 +55,8 @@
 
     <li class="list-group-item">
       <h6>Data</h6>
-      <span class="text-muted">{{ item._data }}</span>
+      <span class="text-muted">{{ item._data.data }}</span>
     </li>
-
-    <!-- <li class="list-group-item">
-      <h6>Timestamp</h6>
-      <span class="text-muted">1241351251250000</span>
-    </li> -->
   </ul>
 </block>
 

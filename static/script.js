@@ -110,6 +110,8 @@ function submitOrder() {
         // Stringify the payload into JSON:
         body:JSON.stringify(inventory)}).then(res=>{
                 if(res.ok){
+                    emptyCart()
+                    alert("Submitted Order!")
                     return res.json()
                 }else{
                     alert("something is wrong")
