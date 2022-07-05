@@ -353,6 +353,35 @@ class bc_server():
             print("There is no backup of the chain (or an error occured, please try again)!")
             return Blockchain()
 
+    def requestBackup(self):
+        pass
+
+    # Check if a new user is added to system and requested for a copy of the blockchain
+    def poll_blockchain_request(self):
+        # Create an Event for notifying main Thread
+        self.blockchain_req_callback_done = threading.Event()
+        self.blockchain_req_doc = self.db.collection_group('blockchain_requestors')
+
+        # Watch the document for changes
+        self.blockchain_requestors = []
+        self.blockchain_req_doc_watch = self.blockchain_req_doc.on_snapshot(self.on_blockchain_request_snapshot)
+    
+    # Callback function to capture changes to blockchain requests
+    def on_blockchain_request_snapshot(self, doc_snapshot, changes, read_time):
+        if doc_snapshot:
+            print("\nReceived new blockchain copy request")
+            self.blockchain_requestors.append(doc_snapshot[0].id)
+            self.no_bc_requestors = len(doc_snapshot) # Count for tallying acknowledgement message
+
+            # Set up acknowledgement document for clients to increase count
+            self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_ACK).set({'bc_ack': 0})
+
+            self.send_blockchain_copy()
+
+            # Start polling for acknowledgement messages sent by clients that has requested for a copy of the blockchain
+            self.poll_blockchain_ack() 
+
+            # !! Do not release callback as need to indefinitely check for addition of new users to the system
 
 if __name__ == '__main__':
     bc_server()
