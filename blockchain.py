@@ -99,6 +99,7 @@ class Blockchain():
     def __init__(self, difficulty=4) -> None:
         self.difficulty = difficulty
         self.chain = LinkedList()
+        self.addBlock(Block("This is the Genesis Block and the start of your transactions!"))
 
     def getDifficulty(self) -> int:
         return self.difficulty
@@ -144,54 +145,54 @@ class Blockchain():
         return chainList
         
 
-if __name__ == '__main__':
-    # DIFFICULTY = 4 # Const var to enforce number of zeros in hash. Remove if no longer mining
+# if __name__ == '__main__':
+#     # DIFFICULTY = 4 # Const var to enforce number of zeros in hash. Remove if no longer mining
 
-    # b0 = Block()
-    # b1 = Block(b0)
-    # b2 = Block(b1)
-    # b3 = Block(b2)
+#     # b0 = Block()
+#     # b1 = Block(b0)
+#     # b2 = Block(b1)
+#     # b3 = Block(b2)
 
-    # # --- Optional if mining is not needed. Mining only enforces number of leading zeros for increased computation time ---
-    # b0.mine(DIFFICULTY)
-    # b1.mine(DIFFICULTY)
-    # b2.mine(DIFFICULTY)
-    # b3.mine(DIFFICULTY)
-    # # ---------------------------------------------------------------------------------------------------------------------
+#     # # --- Optional if mining is not needed. Mining only enforces number of leading zeros for increased computation time ---
+#     # b0.mine(DIFFICULTY)
+#     # b1.mine(DIFFICULTY)
+#     # b2.mine(DIFFICULTY)
+#     # b3.mine(DIFFICULTY)
+#     # # ---------------------------------------------------------------------------------------------------------------------
 
-    # print(b0)
-    # print(b1)
-    # print(b2)
-    # print(b3)
+#     # print(b0)
+#     # print(b1)
+#     # print(b2)
+#     # print(b3)
     
-    blockchain = Blockchain()
-    testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
+#     blockchain = Blockchain()
+#     testData = ["Ligma", "Sugma", "Sawcon", "Kisma", "Dragon"]
 
-    for i in range(5):
-        blockchain.addBlock(Block(testData[i]))
+#     for i in range(5):
+#         blockchain.addBlock(Block(testData[i]))
 
-    blockchain.printChain()
-    print("The blockchain's validity is", blockchain.isValid())
+#     blockchain.printChain()
+#     print("The blockchain's validity is", blockchain.isValid())
 
-    # Pickling the chain
-    saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
-    # Write object into file
-    pickle.dump(blockchain, saveFile)                     
-    saveFile.close()
-    print("\n----- CHAIN SAVED -----")
+#     # Pickling the chain
+#     saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
+#     # Write object into file
+#     pickle.dump(blockchain, saveFile)                     
+#     saveFile.close()
+#     print("\n----- CHAIN SAVED -----")
 
-    # Trying to invalidate the block to test validity function
+#     # Trying to invalidate the block to test validity function
     
-    blockchain.chain.head.prev.data.setData("Yo mama")
-    #blockchain.chain.head.prev.data.mine(0)
-    blockchain.printChain()
-    print("The blockchain's validity is", blockchain.isValid())
+#     blockchain.chain.head.prev.data.setData("Yo mama")
+#     #blockchain.chain.head.prev.data.mine(0)
+#     blockchain.printChain()
+#     print("The blockchain's validity is", blockchain.isValid())
 
-    # Read in binary mode (Important)
-    saveFile = open('savedChain.bc', 'rb')     
-    savedChain = pickle.load(saveFile)
-    print("\n----- CHAIN LOADED -----")
-    savedChain.printChain()
-    print("The blockchain's validity is", savedChain.isValid())
-    print("\n------------------------")
-    saveFile.close()
+#     # Read in binary mode (Important)
+#     saveFile = open('savedChain.bc', 'rb')     
+#     savedChain = pickle.load(saveFile)
+#     print("\n----- CHAIN LOADED -----")
+#     savedChain.printChain()
+#     print("The blockchain's validity is", savedChain.isValid())
+#     print("\n------------------------")
+#     saveFile.close()
