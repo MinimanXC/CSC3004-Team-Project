@@ -75,7 +75,8 @@ class bc_client():
 
         self.curr_client_email = 'test@test.com'
 
-        self.main()
+        self.pollRequest()
+        # self.main()
 
     def main(self):
         self.check_new_user()
@@ -83,7 +84,6 @@ class bc_client():
         self.check_lock() # Check if lock is available (0) or not (-1)
         #self.send_new_block_details() # Send details to be added to new block
         self.poll_new_block()
-        self.pollRequest()
 
         while True:
             time.sleep(2)
