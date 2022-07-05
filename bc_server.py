@@ -403,7 +403,7 @@ class bc_server():
             pickle.dump(longestBC, saveFile)                     
             saveFile.close()
 
-            # Uncomment if backups need to be deleted by server
+            # Uncomment if backups need to be deleted by server (Increased Confidentiality & Integrity but reduced Availability)
             # for doc in coll_snapshot:
             #     self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').document(doc.id).delete()
             # self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).delete()
