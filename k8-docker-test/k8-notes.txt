@@ -1,8 +1,15 @@
 **Docker**
 
+- Server
 $ docker image rm k8-py-fb
 $ docker build -t k8-py-fb .
 $ docker tag k8-py-fb:latest k8-py-fb:latest
+
+- Client
+$ docker image rm bc_client
+$ docker build -t bc_client .
+$ docker run -p 4444:4444 -d bc_client
+$ docker tag bc_client:latest syabz03/bc_client:latest
 
 **Kubernetes**
 
@@ -41,13 +48,13 @@ kubectl delete persistentvolume/appdisk --namespace=k8-py-fb --grace-period=0 --
 kubectl get all -n k8-py-fb
 kubectl delete --all pods --namespace=k8-py-fb
 
-kubectl describe pod/k8-py-fb-85c697789f-jmhdh -n k8-py-fb 
+kubectl describe pod/k8-py-fb-85c697789f-48rt2 -n k8-py-fb 
 kubectl describe persistentvolumeclaim/appclaim -n k8-py-fb 
 kubectl describe persistentvolume/appdisk -n k8-py-fb 
 
-kubectl logs pod/k8-py-fb-85c697789f-jmhdh -n k8-py-fb 
-kubectl exec -ti pod/k8-py-fb-85c697789f-jmhdh -n k8-py-fb -- ls -l ../app-data
-kubectl cp k8-py-fb/k8-py-fb-85c697789f-swq62:../app-data/test_file.txt /tmp/app-data/testfile.txt 
+kubectl logs pod/k8-py-fb-85c697789f-hgvwx -n k8-py-fb 
+kubectl exec -ti pod/k8-py-fb-85c697789f-hgvwx -n k8-py-fb -- ls -la ../app-data
+kubectl cp k8-py-fb/k8-py-fb-85c697789f-5hsq7:../app-data/test_file.txt /tmp/app-data/testfile.txt 
 
 ### Notes:
 # - Files in ../app-data will persist unless persistent_volume or persistent_volume_claim is corrupted 

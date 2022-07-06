@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Home</title>
+    
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="static/style.css">
+  
+  </head>
+  <body>
+  
+      
+ <main>
+     <!-- Start DEMO HTML (Use the following code into your project)-->
+    <div class="container"> 
+    <div id="alerts"></div>
+    <div class="productcont">
+        <div class="product">
+            <h5 class="productname">Paracetamol</h5>
+            <p>Common painkiller used to treat aches and pain</p>
+            <p class="price">$5.05</p>
+            <button class="addtocart">Add To Cart</button>
+        </div>
+        <div class="product">
+            <h5 class="productname">Amlodipine</h5>
+            <p>It treats high blood pressure and angina</p>
+            <p class="price">$8.50</p>
+            <button class="addtocart">Add To Cart</button>
+        </div>
+        <div class="product">
+            <h5 class="productname">Metoprolol</h5>
+            <p>It treats high blood pressure,heart failure, and following a heart attack.</p>
+            <p class="price">$10.50</p>
+            <button class="addtocart">Add To Cart</button>
+        </div>
+        <div class="product">
+            <h5 class="productname">Albuterol</h5>
+            <p>It treats bronchospasm from a variety of lung problems</p>
+            <p class="price">$10.50</p>
+            <button class="addtocart">Add To Cart</button>
+        </div>
+    </div>
+        <div class="cart-container">
+          <h2>Cart</h2>
+          <table>
+            <thead>
+              <tr>
+              <th><strong>Product</strong></th>
+              <th><strong>Price</strong></th>
+            </tr>
+            </thead>
+            <tbody id="carttable">
+            </tbody>
+          </table>
+          <hr>
+          <table id="carttotals">
+            <tr>
+              <td><strong>Items</strong></td>
+              <td><strong>Total</strong></td>
+            </tr>
+            <tr>
+              <td>x <span id="itemsquantity">0</span></td>
+             
+              <td>$<span id="total">0</span></td>
+            </tr></table>
+
+            
+          <div class="cart-buttons">  
+            <button id="emptyCart">Empty Cart</button>
+            <button id="submitOrder">Submit Order</button>
+          </div>
+        </div>
+</div>
+<!-- partial -->
+
+     <!-- END EDMO HTML (Happy Coding!)-->
+ </main>
+ 
+
+        <script  src="./static/script.js"></script> 
+  </body>
+</html>
+{% endblock content %}

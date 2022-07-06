@@ -1,12 +1,13 @@
+# start by pulling the python image
 FROM python:3.9.13-slim-buster
 
-# Setting Home Directory for containers
+# switch working directory
 WORKDIR /app
 
-# Adding files in the current directory to the Home directory for containers
+# copy every content from the local file to the image
 ADD . /app
 
-# Install required Python dependencies
+# install the dependencies and packages in the requirements file
 RUN pip install -r requirements.txt
 
 # Set Timezone
@@ -23,5 +24,6 @@ ADD savedChain.bc /app-data/savedChain.bc
 
 ENV PYTHONUNBUFFERED=1
 
-# Commands to run at start-up 
-CMD ["python3", "bc_server.py"]
+# configure the container to run in an executed manner
+ENTRYPOINT [ "python3" ]
+CMD ["webapp.py" ]
