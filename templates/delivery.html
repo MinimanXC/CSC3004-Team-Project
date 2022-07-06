@@ -1,67 +1,60 @@
 {% extends "layout.html" %}
 {% block content %}
-    <div class="container">
+    <link rel="stylesheet" href="{{ url_for('static', filename='card.css') }}">
+
+    <p class="title"> Delivery Orders</p>
+    <p class="sub_title"> Select an order to change delivery status.</p>
 
 
-    {% with messages = get_flashed_messages() %}
-  {% if messages %}
-      <div class="notification is-danger">
-          {{ messages[0] }}.
-      </div>
-  {% endif %}
-  {% endwith %}
-{% for item in data %}
-  {% if loop.first %}
-  <block class="card block active" data-bs-toggle="collapse" >
-  {% else %}
-  <block class="card block" data-bs-toggle="collapse" aria-expanded="false">
-  {% endif %}
-
-
-  <div class="card-header">
-    <span class="display-6">Order #{{ item.id }} </span>
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+  <div class="notification is-danger">
+      {{ messages[0] }}.
   </div>
+{% endif %}
+{% endwith %}
 
+{% for item in data %}
 
-  <ul class="list-group list-group-flush">
-    <li class="list-group-item">
-      <h5>Client Email</h5>
-      <span >{{ item.client_email }}</span>
-      <h5>Order status:</h5>
-      <span class="text-muted">{{ item.status }}</span>
-    </li>
-
-  {% if item.status == "approved"%}
-    <li class="list-group-item">
-      <div class="custom-file mt-3 mb-3">
-            <form method="post" enctype="multipart/form-data" >
-          <input id="fileInput" type="file" name="upload" style="display:none;" />
-          <input name="oid" value={{ item.id }} style="display:none;" />
-          <input
-            type="button"
-            class="btn btn-primary btn-block mx-auto"
-            value="CHOOSE DELIVERY IMAGE"
-            onclick="document.getElementById('fileInput').click();"
-          />
-            <button class="btn btn-primary btn-block mx-auto" type="submit">Upload</button>
-                 </form>
-        </div>
-    </li>
-  {% else %}
-      <li class="list-group-item">
-      <div class="custom-file mt-3 mb-3">
-        </div>
-    </li>
-  {% endif %}
-
-  </ul>
-</block>
+    <div class='card'>
+  <div class='card_left'>
+    <img src='/static/delivery.png'>
+  </div>
+  <div class='card_right'>
+    <h1>Order #{{ item.id }}</h1>
+    <div class='card_right_order_details'>
+      <ul class="user_details">
+        <li>Client email: {{ item.client_email }}</li>
+        <li>Order status: {{ item.status }}</li>
+      </ul>
+        {% if item.status == "approved"%}
+        <form method="post" enctype="multipart/form-data" >
+            <div class="button_row">
+              <div class='card_right__button'>
+                    <input id="fileInput" type="file" name="fileInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="return check_photo(this.form.fileInput.value);" />
+                    <input name="oid" value={{ item.id }} style="display:none;" />
+                  <input
+                    type="button"
+                    class="card_right__button"
+                    value="CHOOSE DELIVERY IMAGE"
+                    onclick="document.getElementById('fileInput').click();"
+                  />
+              </div>
+                <div class='card_right_submit_button'>
+                    <button type="submitBtn" disabled name="submitBtn" id="submitBtn">Upload</button>
+              </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+     </div>
+    </div>
 
 {% if not loop.last %}
-     <div class="space"></div>
+     <div class="space_height"></div>
 {% endif %}
 {% endfor %}
 
 
-    </div>
+ <script  src="./static/script.js"></script>
 {% endblock content %}

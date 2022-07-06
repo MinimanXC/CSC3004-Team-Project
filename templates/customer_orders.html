@@ -1,50 +1,42 @@
 {% extends "layout.html" %}
 {% block content %}
-    <div class="container">
+<link rel="stylesheet" href="{{ url_for('static', filename='card.css') }}">
+
+<p class="title"> Order History</p>
+<p class="sub_title">Below is a complete record of your orders.</p>
+
 
 {% for item in data %}
-  {% if loop.first %}
-  <block class="card block active" data-bs-toggle="collapse" >
-  {% else %}
-  <block class="card block" data-bs-toggle="collapse" aria-expanded="false">
-  {% endif %}
 
-  <div class="card-header">
-    <span class="display-6">Order #{{ item.id }} </span>
+    <div class='m_card'>
+  <div class='m_card_left'>
+    <img src='/static/pills.png'>
   </div>
+  <div class='m_card_right'>
+    <h1>Order #{{ item.id }}</h1>
+    <div class='card_right_order_details'>
+      <ul class="user_details">
+        <li>Client email: {{ item.client_email }}</li>
+        <li>Order status: {{ item.status }}</li>
+      </ul>
 
-  <ul class="list-group list-group-flush">
-    <li class="list-group-item">
-      <h5>Client Email</h5>
-      <span >{{ item.client_email }}</span>
-
-      <h5>Order status:</h5>
-      <span class="text-muted">{{ item.status }}</span>
-    </li>
-
-  </ul>
-      <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Price</th>
-            </tr>
-          </thead>
-          <tbody>
+      <ul class="medication">
+        <li>Product</li>
+        <li>Price</li>
           {% for key, value in item.products.items() %}
-           <tr>
-               <td> {{ key }} </td>
-               <td> {{ value }} </td>
-           </tr>
+        <li>{{ key }}</li>
+        <li>{{ value }}</li>
           {% endfor %}
-          </tbody>
-        </table>
-</block>
+      </ul>
+
+    </div>
+     </div>
+    </div>
 
 {% if not loop.last %}
-     <div class="space"></div>
+     <div class="space_height"></div>
 {% endif %}
 {% endfor %}
 
-    </div>
+
 {% endblock content %}

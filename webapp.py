@@ -205,7 +205,7 @@ def update_delivery():
     if request.method == 'POST':
         oid = request.form.get('oid')
         # uploads shipping photo
-        upload = request.files['upload']
+        upload = request.files['fileInput']
         photo_str = 'proof_of_delivery/' + oid + '.jpg'
         print(photo_str)
         storage.child(photo_str).put(upload)

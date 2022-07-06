@@ -142,3 +142,16 @@ function emptyCart() {
       }
     }
 }
+
+function check_photo(fileInput){
+    let btn = document.querySelector('#submitBtn');
+    if(!fileInput){
+        alert('Please choose a photo');
+        return false;
+    }
+    else{
+        btn.removeAttribute('disabled');
+        return false;
+    }
+    return false;
+}
