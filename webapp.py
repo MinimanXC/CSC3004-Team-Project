@@ -38,7 +38,7 @@ curr_user = ''
 user_type = ''
 curr_email = ""
 bc = ''
-
+home = ''
 # password for all emails are: 123456
 # show different user home page after according to user type
 @app.route('/', methods=['POST', 'GET'])
@@ -61,11 +61,15 @@ def login():
                     global user_type
                     user_type = (userz.to_dict()).get('user_type')
                     print(user_type)
+                    global home
                     if(user_type == 'client'):
+                        home="/home"
                         return redirect('home')
                     elif (user_type == 'supplier'):
+                        home="/seller_orders"
                         return redirect('seller_orders')
                     elif (user_type == 'delivery_partner'):
+                        home="/delivery"
                         return redirect('delivery')
             flash('Error Retrieving User Info')
             return redirect('login')
@@ -87,15 +91,24 @@ def home():
     bc.check_new_user()
 
     print(user_type)
+    global home
     # show different home page based on user type
     if user_type == 'supplier':
+        home="/seller_orders"
         return redirect('seller_orders')
     elif user_type == 'delivery_partner':
+        home="/delivery"
         return redirect('delivery')
-    return render_template('home.html')
+    else: 
+        home="/home"
+
+    return render_template('home.html', home=home)
 
 @app.route("/receiver", methods=["POST", 'GET'])
 def submit_order():
+    global curr_email
+    curr_email = session['user']
+
     data = request.get_data()
     initial_list = json.loads(data.decode("utf-8"))
     print(initial_list)
@@ -148,8 +161,10 @@ def blockchain_view():
         chainList = blockchain.getChain()
     except:
         print("Error occurred trying to read blockchain data")
+
     
-    return render_template('index.html', data=chainList[::-1])
+    global home
+    return render_template('index.html', home=home, data=chainList[::-1])
 
 @app.route('/invalidatebc', methods=["POST", 'GET'])
 def invalidate_blockchain():
@@ -211,6 +226,7 @@ def update_delivery():
         amended_order['proof_of_delivery'] = str(oid + '.jpg')
 
         # updates shipping status
+        amended_order["status"] = "delivered"
         db.collection("orders").document(oid).update({"status": "delivered"})
 
         # Add Data to Blockchain
@@ -222,8 +238,9 @@ def update_delivery():
 
         flash('Order is delivered!')
         return redirect('delivery')
-
-    return render_template('delivery.html', data=order_details)
+    
+    global home
+    return render_template('delivery.html', home=home, data=order_details)
 
 
 # displays orders made by clients and show the order status
@@ -238,8 +255,9 @@ def customer_orders():
             otd = order.to_dict()
             new_val = {**otd, **order_id}
             order_details.append(new_val)
-
-    return render_template('customer_orders.html', data=order_details)
+    
+    global home
+    return render_template('customer_orders.html', home=home, data=order_details)
 
 
 @app.route('/seller_orders', methods=['GET', 'POST'])
@@ -285,7 +303,8 @@ def seller_orders():
 
         return redirect('seller_orders')
 
-    return render_template('seller_orders.html', data=order_details)
+    global home
+    return render_template('seller_orders.html', home=home, data=order_details)
 
 
 # logout and clears session
