@@ -66,6 +66,7 @@ class bc_server():
         self.blockchain = self.loadChain()
 
         self.lock = -1
+        self.all_ack = 0
         self.clients_count = 10
         self.main()
 
@@ -207,10 +208,11 @@ class bc_server():
             self.earliest_requestor_type = self.requests_list[0].get('user_type')
             print(f'> Requestor: {self.earliest_requestor}, Requestor Type: {self.earliest_requestor_type}')
 
-            # Check that current lock state is 0 (available)
-            while self.lock != 0:
+            # Check that current lock state is 0 (available), ack - ensure all clients have acknowledged receive and added block
+            while self.lock != 0 and self.all_ack != self.clients_count:
                 print("Lock currently unavailable, polling for changes")
                 self.poll_lock()
+                self.poll_ack()
                 time.sleep(5)
 
             # ensure lock is released by previous client
@@ -333,27 +335,34 @@ class bc_server():
     
     # Callback function to capture changes to lock availability
     def on_ack_snapshot(self, doc_snapshot, changes, read_time):
-        curr_ack = doc_snapshot[0].to_dict()
-        total_ack = 0
-        clients_ack = []
-        for key, value in curr_ack.items():
-            clients_ack.append(key) # client ack, to reset to 0 once all ack
-            total_ack += value # ack count
+        for change in changes:
+            # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
+            if change.type.name == 'MODIFIED': 
+                if doc_snapshot:
+                    curr_ack = doc_snapshot[0].to_dict()
+                    total_ack = 0
+                    clients_ack = []
+                    for key, value in curr_ack.items():
+                        clients_ack.append(key) # client ack, to reset to 0 once all ack
+                        total_ack += value # ack count
 
-        # Ensure all clients have acknowledged before releasing callback
-        if (total_ack >= self.clients_count):
-            print("Clients ack-ed")
-            self.ack_callback_done.set()
-            
-            # Once all clients have acknowledged, remove block details
-            new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
-            new_block_doc.delete()
-            
-            for clients in clients_ack:
-                self.ack_doc.update({clients:0})
+                    # Ensure all clients have acknowledged before releasing callback
+                    if (total_ack >= self.clients_count):
+                        print("Clients ack-ed")
+                        self.ack_callback_done.set()
+                        
+                        # Once all clients have acknowledged, remove block details
+                        new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
+                        new_block_doc.delete()
+                        
+                        for clients in clients_ack:
+                            self.ack_doc.update({clients:0})
+                            self.all_ack += 1
 
-            # Check any requests pending
-            self.check_requests()
+                        # Check any requests pending
+                        self.check_requests()
+                    else:
+                        time.sleep(2)
 
     def saveChain(self, bcObj, name="savedChain"):
         try:

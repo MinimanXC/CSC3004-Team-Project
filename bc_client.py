@@ -246,11 +246,11 @@ class bc_client():
             # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
             if change.type.name == 'ADDED' or change.type.name == 'MODIFIED': 
                 if doc_snapshot:
-                    hv_received = self.check_received_block_ack()
-                    print("Previously Received Current Block to Add: ", hv_received)
-                    if not hv_received:
-                        hv_received = True
-                        self.get_new_block()
+                    # hv_received = self.check_received_block_ack()
+                    # print("Previously Received Current Block to Add: ", hv_received)
+                    # if not hv_received:
+                    #     hv_received = True
+                    self.get_new_block()
                     
                     self.new_block_callback_done.set()
 
