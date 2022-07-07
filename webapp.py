@@ -10,7 +10,7 @@ import pyrebase
 import json
 from bc_client import bc_client
 import threading 
-import ast
+from operator import itemgetter
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -154,8 +154,6 @@ def add_data_to_blockchain(user, data):
 def blockchain_view():
     global bc
     if bc == '': # in the event that bc_client was not properly initialised
-        global curr_user
-        curr_user = session['user']
         bc = bc_client(curr_user)
 
     chainList = ""
@@ -165,14 +163,7 @@ def blockchain_view():
     except:
         print("Error occurred trying to read blockchain data")
 
-    global home
-    # show different home page based on user type
-    if user_type == 'supplier':
-        home="/seller_orders"
-    elif user_type == 'delivery_partner':
-        home="/delivery"
-    else: 
-        home="/home"
+    set_home_landing_page()
     return render_template('index.html', home=home, data=chainList[::-1])
 
 @app.route('/invalidatebc', methods=["POST", 'GET'])
@@ -214,11 +205,14 @@ def update_delivery():
         order_status = (orders.to_dict()).get('status')
         # print(order_status)
         if order_status == 'approved' or order_status == 'delivered':
-            print(db.collection("orders").document(order.id).collection('status').get())
+            # print(db.collection("orders").document(order.id).collection('status').get())
             order_id = {"id": order.id}
             otd = order.to_dict()
             new_val = {**otd, **order_id}
             order_details.append(new_val)
+    
+    # Sort to show pending first
+    order_details = sorted(order_details, key=itemgetter('status'))
 
     # Checks if current user already has a copy of the blockchain, if not, 
     # This function will request it from Server
@@ -254,14 +248,7 @@ def update_delivery():
         flash('Order is delivered!')
         return redirect('delivery')
     
-    global home
-    # show different home page based on user type
-    if user_type == 'supplier':
-        home="/seller_orders"
-    elif user_type == 'delivery_partner':
-        home="/delivery"
-    else: 
-        home="/home"
+    set_home_landing_page()
     return render_template('delivery.html', home=home, data=order_details)
 
 
@@ -284,14 +271,7 @@ def customer_orders():
     get_thread.daemon = True
     get_thread.start()
 
-    global home
-    # show different home page based on user type
-    if user_type == 'supplier':
-        home="/seller_orders"
-    elif user_type == 'delivery_partner':
-        home="/delivery"
-    else: 
-        home="/home"
+    set_home_landing_page()
     return render_template('customer_orders.html', home=home, data=order_details)
 
 
@@ -301,16 +281,6 @@ def seller_orders():
     curr_email = session['user']
     request_seller_orders = db.collection("orders").get()
     order_details = []
-
-    global home
-    print(user_type)
-    # show different home page based on user type
-    if user_type == 'supplier':
-        home="/seller_orders"
-    elif user_type == 'delivery_partner':
-        home="/delivery"
-    else: 
-        home="/home"
 
     for order in request_seller_orders:
         order_id = {"id": order.id}
@@ -323,6 +293,9 @@ def seller_orders():
     get_thread = threading.Thread(target=get_blockchain_copy)
     get_thread.daemon = True
     get_thread.start()
+
+    # Sort to show pending first
+    order_details = sorted(order_details, key=itemgetter('status'), reverse=True)
 
     if request.method == 'POST':
         # updates shipping status
@@ -354,8 +327,20 @@ def seller_orders():
 
         return redirect('seller_orders')
 
+    set_home_landing_page()
     return render_template('seller_orders.html', home=home, data=order_details)
 
+def set_home_landing_page():
+    global home
+    global user_type
+    # show different home page based on user type
+    if user_type == 'supplier':
+        home="/seller_orders"
+    elif user_type == 'delivery_partner':
+        home="/delivery"
+    else: 
+        home="/home"
+    print(user_type, home)
 
 # logout and clears session
 @app.route('/logout')
