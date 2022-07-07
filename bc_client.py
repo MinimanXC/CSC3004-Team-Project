@@ -47,6 +47,7 @@ BLOCK_COLL = "blocks"
 LOCK_AVAIL = "lock_availability"
 NEW_BLOCK = "new_block"
 NEW_BLOCK_ACK = "new_block_ack"
+NEW_BLOCK_AVAIL = "new_block_available"
 TEMP_NEW_BLOCK = "temp_new_block"
 REQUEST_LOCK = "request_lock"
 REQUEST_BLOCKCHAIN = "request_blockchain"
@@ -230,7 +231,7 @@ class bc_client():
     def poll_new_block(self):
         # Create an Event for notifying main Thread
         self.new_block_callback_done = threading.Event()
-        self.new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
+        self.new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
 
         # Watch the document for changes
         self.new_block_doc_watch = self.new_block_doc.on_snapshot(self.on_new_block_snapshot)
@@ -239,13 +240,15 @@ class bc_client():
     # - Add block to client's copy of blockchain 
     # - Send acknowledgement to Firebase
     def on_new_block_snapshot(self, doc_snapshot, changes, read_time):
-        if doc_snapshot:
+        available = doc_snapshot[0].get('new_available')
+        if available > 0:
             hv_received = self.check_received_block_ack()
             print("Previously Received Current Block to Add: ", hv_received)
             if not hv_received:
+                hv_received = True
                 self.get_new_block()
             
-            # self.new_block_callback_done.set()
+            self.new_block_callback_done.set()
 
             print("[Added new block to Blockchain] Sent acknowledgement! ")
 
@@ -283,6 +286,13 @@ class bc_client():
                 with open(BLOCKCHAIN_PATH, 'wb') as bc_file:
                     pickle.dump(bc, bc_file)
                 
+                # Add ack count
+                self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK)
+                client_id=self.curr_client_id.split('@')[0]
+                ack_key = str(client_id+'_ack')
+                self.ack_doc.update({ ack_key: 1 })
+                print("Ack: ", ack_key)
+
                 # Upload blockchain blob to cloud for backup purposes (NEW)
                 bcBlob = pickle.dumps(bc, protocol=pickle.HIGHEST_PROTOCOL)
                 requestBackupColl = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').document(str(self.curr_client_id))
@@ -294,13 +304,6 @@ class bc_client():
                 }
                 requestBackupColl.set(requestDetails)
                 print("Uploaded blockchain backup to Firebase!")
-
-                # Add ack count
-                self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK)
-                client_id=self.curr_client_id.split('@')[0]
-                ack_key = str(client_id+'_ack')
-                self.ack_doc.update({ ack_key: 1 })
-                print("Ack: ", ack_key)
 
             except:
                 print("error occurred creating new block")

@@ -287,7 +287,7 @@ class bc_server():
         if doc_snapshot:
             temp_block = doc_snapshot[0]
             client_id = temp_block.get('client_id')
-            print(f'> Temp Block By: {client_id}') # TODO: Add count validation check, due to multiple prints
+            print(f'> Temp Block By: {client_id}') 
 
             if self.earliest_requestor == client_id:
                 self.temp_block_callback_done.set()
@@ -296,7 +296,7 @@ class bc_server():
             
             self.add_block_to_blockchain(temp_block.to_dict())
         else:
-            print("No new Block details") # TODO: Add count validation check, due to multiple prints
+            print("No new Block details")
     
     # Add details provided by client to Blockchain
     def add_block_to_blockchain(self, new_block_dict):
@@ -313,7 +313,10 @@ class bc_server():
         new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
         new_block_doc.set(new_block)
 
-        print("Sent Block to Clients! ") # TODO: Add count validation check, due to multiple prints
+        new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
+        new_block_doc.set({ 'new_available' : 1 })
+
+        print("Sent Block to Clients! ")
 
         # Start polling for acknowledgement message sent by clients
         self.poll_ack()
