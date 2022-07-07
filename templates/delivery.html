@@ -31,17 +31,17 @@
         <form method="post" enctype="multipart/form-data" >
             <div class="button_row">
               <div class='card_right__button'>
-                    <input id="fileInput" type="file" name="fileInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="return check_photo(this.form.fileInput.value);" />
-                    <input name="oid" value={{ item.id }} style="display:none;" />
+                    <input id="{{ item.id }}-fileInput" type="file" name="{{ item.id }}-fileInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="return check_photo(this);" />
+                    <input name="oid" value="{{ item.id }}" style="display:none;" />
                   <input
                     type="button"
                     class="card_right__button"
                     value="CHOOSE DELIVERY IMAGE"
-                    onclick="document.getElementById('fileInput').click();"
+                    onclick="document.getElementById('{{ item.id }}-fileInput').click();"
                   />
               </div>
                 <div class='card_right_submit_button'>
-                    <button type="submitBtn" disabled name="submitBtn" id="submitBtn">Upload</button>
+                    <button type="submitBtn" disabled name="submitBtn" id="{{ item.id }}-submitBtn">Upload</button>
               </div>
             </div>
         </form>
@@ -55,6 +55,4 @@
 {% endif %}
 {% endfor %}
 
-
- <script  src="./static/script.js"></script>
 {% endblock content %}

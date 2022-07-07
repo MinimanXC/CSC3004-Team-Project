@@ -107,28 +107,18 @@ def submit_order():
         "products": orders_dict
     }
     db.collection("orders").add(new_values)
-
-
-    print("Data: ", str(data), "\nUser: ", curr_user)
-    decoded_dict = orders_dict # Decode bytes data and convert to dictionary
+    
+    print("Data: ", new_values, "\nUser: ", curr_user)
 
     # Use Threading as there will be multiple functions being executed tied to callback functions
-    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,decoded_dict,))
+    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,new_values,))
     add_data_thread.daemon = True
     add_data_thread.start()
+    add_data_thread.join()
 
     # add to firestore
 
     return data
-
-
-# Decode bytes data received from request and convert it to a list
-# The list format is --> [medicine, price], thus will then be converted to a dictionary
-def convert_data_to_dict(data):
-    decoded_data = ast.literal_eval(data.decode('UTF-8'))
-    res_dict = {decoded_data[i]: decoded_data[i + 1] for i in range(0, len(decoded_data), 2)}
-
-    return res_dict
 
 # Will request lock from server first before a new block's data is sent over to the server
 def add_data_to_blockchain(user, data):
@@ -189,29 +179,47 @@ def invalidate_blockchain():
 # allows delivery driver to update delivery status
 @app.route('/delivery', methods=['GET', 'POST'])
 def update_delivery():
+    global curr_email
+    curr_email = session['user']
     request_orders_for_delivery = db.collection("orders").get()
     order_details = []
+
     # filter orders by approved and delivered
     for order in request_orders_for_delivery:
         orders = db.collection('orders').document(order.id).get()
         order_status = (orders.to_dict()).get('status')
-        print(order_status)
+        # print(order_status)
         if order_status == 'approved' or order_status == 'delivered':
             print(db.collection("orders").document(order.id).collection('status').get())
             order_id = {"id": order.id}
             otd = order.to_dict()
             new_val = {**otd, **order_id}
             order_details.append(new_val)
+
     if request.method == 'POST':
         oid = request.form.get('oid')
+        print(oid)
+
+        amended_order = next((item for item in order_details if item["id"] == oid), None)
+        amended_order['delivery_partner_email'] = curr_email
+
         # uploads shipping photo
-        upload = request.files['fileInput']
+        file_input = str(oid + '-fileInput')
+        upload = request.files[file_input]
         photo_str = 'proof_of_delivery/' + oid + '.jpg'
-        print(photo_str)
         storage.child(photo_str).put(upload)
+        amended_order['proof_of_delivery'] = str(oid + '.jpg')
 
         # updates shipping status
         db.collection("orders").document(oid).update({"status": "delivered"})
+
+        # Add Data to Blockchain
+        # Use Threading as there will be multiple functions being executed tied to callback functions
+        add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,amended_order,))
+        add_data_thread.daemon = True
+        add_data_thread.start()
+        add_data_thread.join()
+
         flash('Order is delivered!')
         return redirect('delivery')
 
@@ -236,6 +244,8 @@ def customer_orders():
 
 @app.route('/seller_orders', methods=['GET', 'POST'])
 def seller_orders():
+    global curr_email
+    curr_email = session['user']
     request_seller_orders = db.collection("orders").get()
     order_details = []
 
@@ -248,15 +258,32 @@ def seller_orders():
     if request.method == 'POST':
         # updates shipping status
         oid = request.form.get('oid')
-        print(oid)
+        print("order id: ", oid)
+
+        amended_order = next((item for item in order_details if item["id"] == oid), None)
+        amended_order['seller_email'] = curr_email
+
         if request.form.get('approve') == 'approve':
+            amended_order["status"] = "approved"
+            print("Order Details: ", amended_order)
+
             db.collection("orders").document(oid).update({"status": "approved"})
             flash('Order is approved!')
-            return redirect('seller_orders')
         elif request.form.get('cancel') == 'cancel':
+            amended_order["status"] = "approved"
+            print("Order Details: ", amended_order)
+
             db.collection("orders").document(oid).update({"status": "cancelled"})
             flash('Order is cancelled!')
-            return redirect('seller_orders')
+
+        # Add Data to Blockchain
+        # Use Threading as there will be multiple functions being executed tied to callback functions
+        add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,amended_order,))
+        add_data_thread.daemon = True
+        add_data_thread.start()
+        add_data_thread.join()
+
+        return redirect('seller_orders')
 
     return render_template('seller_orders.html', data=order_details)
 

@@ -163,6 +163,7 @@ class bc_client():
             self.poll_lock() # Set callback
             while self.lock != -1 or self.curr_client_id != self.lock_client:
                 time.sleep(2)
+                self.request_lock(self.curr_client_id) # Request for lock again 
 
                 # Ensure lock is -1 and assigned_user is this current user before executing other functions
 

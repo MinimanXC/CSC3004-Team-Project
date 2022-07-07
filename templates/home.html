@@ -1,25 +1,17 @@
 {% extends "layout.html" %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Home</title>
-    
-    <!-- Style CSS -->
-    <link rel="stylesheet" href="static/style.css">
-  
-  </head>
-  <body>
-  
-      
- <main>
-     <!-- Start DEMO HTML (Use the following code into your project)-->
-    <div class="container">
-        <button onclick="location.href = 'customer_orders';" class="view_orders" role="button">View Orders</button>
+
+<div class="container">
+    <button onclick="location.href = 'customer_orders';" class="view_orders" role="button">View Orders</button>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="notification is-danger">
+          {{ messages[0] }}.
+      </div>
+    {% endif %}
+    {% endwith %}
     <div id="alerts"></div>
-        <div class="space_height"></div>
+    <div class="space_height"></div>
     <div class="productcont">
         <div class="product">
             <h5 class="productname">Paracetamol</h5>
@@ -77,13 +69,5 @@
           </div>
         </div>
 </div>
-<!-- partial -->
 
-     <!-- END EDMO HTML (Happy Coding!)-->
- </main>
- 
-
-        <script  src="./static/script.js"></script> 
-  </body>
-</html>
 {% endblock content %}

@@ -52,8 +52,8 @@ kubectl describe pod/k8-py-fb-85c697789f-48rt2 -n k8-py-fb
 kubectl describe persistentvolumeclaim/appclaim -n k8-py-fb 
 kubectl describe persistentvolume/appdisk -n k8-py-fb 
 
-kubectl logs pod/k8-py-fb-85c697789f-hgvwx -n k8-py-fb 
-kubectl exec -ti pod/k8-py-fb-85c697789f-hgvwx -n k8-py-fb -- ls -la ../app-data
+kubectl logs pod/k8-py-fb-5658997696-nqd6b -n k8-py-fb 
+kubectl exec -ti pod/k8-py-fb-5658997696-nqd6b -n k8-py-fb -- ls -la ../app-data
 kubectl cp k8-py-fb/k8-py-fb-85c697789f-5hsq7:../app-data/test_file.txt /tmp/app-data/testfile.txt 
 
 ### Notes:
