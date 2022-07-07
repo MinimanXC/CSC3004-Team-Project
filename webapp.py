@@ -39,6 +39,7 @@ user_type = ''
 curr_email = ""
 bc = ''
 home = ''
+
 # password for all emails are: 123456
 # show different user home page after according to user type
 @app.route('/', methods=['POST', 'GET'])
@@ -88,7 +89,9 @@ def home():
 
     # Checks if current user already has a copy of the blockchain, if not, 
     # This function will request it from Server
-    bc.check_new_user()
+    get_thread = threading.Thread(target=get_blockchain_copy)
+    get_thread.daemon = True
+    get_thread.start()
 
     print(user_type)
     global home
@@ -103,6 +106,9 @@ def home():
         home="/home"
 
     return render_template('home.html', home=home)
+
+def get_blockchain_copy():
+    bc.check_new_user()
 
 @app.route("/receiver", methods=["POST", 'GET'])
 def submit_order():
@@ -121,26 +127,23 @@ def submit_order():
     }
     db.collection("orders").add(new_values)
     
-    print("Data: ", new_values, "\nUser: ", curr_user)
+    print("Data: ", new_values, "\nUser: ", curr_email)
 
     # Use Threading as there will be multiple functions being executed tied to callback functions
-    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,new_values,))
+    add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_email,new_values,))
     add_data_thread.daemon = True
     add_data_thread.start()
     add_data_thread.join()
-
-    # add to firestore
 
     return data
 
 # Will request lock from server first before a new block's data is sent over to the server
 def add_data_to_blockchain(user, data):
     global bc
-    if bc == "": # in the event that bc_client was not properly initialised
-        global curr_user
-        curr_user = session['user']
-        bc = bc_client(curr_user)
+    if bc == '': # in the event that bc_client was not properly initialised
+        bc = bc_client(user)
 
+    print(user)
     bc.request_lock(user)
     lock = bc.check_lock()
     if lock:
@@ -162,8 +165,14 @@ def blockchain_view():
     except:
         print("Error occurred trying to read blockchain data")
 
-    
     global home
+    # show different home page based on user type
+    if user_type == 'supplier':
+        home="/seller_orders"
+    elif user_type == 'delivery_partner':
+        home="/delivery"
+    else: 
+        home="/home"
     return render_template('index.html', home=home, data=chainList[::-1])
 
 @app.route('/invalidatebc', methods=["POST", 'GET'])
@@ -211,6 +220,12 @@ def update_delivery():
             new_val = {**otd, **order_id}
             order_details.append(new_val)
 
+    # Checks if current user already has a copy of the blockchain, if not, 
+    # This function will request it from Server
+    get_thread = threading.Thread(target=get_blockchain_copy)
+    get_thread.daemon = True
+    get_thread.start()
+
     if request.method == 'POST':
         oid = request.form.get('oid')
         print(oid)
@@ -231,7 +246,7 @@ def update_delivery():
 
         # Add Data to Blockchain
         # Use Threading as there will be multiple functions being executed tied to callback functions
-        add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,amended_order,))
+        add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_email,amended_order,))
         add_data_thread.daemon = True
         add_data_thread.start()
         add_data_thread.join()
@@ -240,6 +255,13 @@ def update_delivery():
         return redirect('delivery')
     
     global home
+    # show different home page based on user type
+    if user_type == 'supplier':
+        home="/seller_orders"
+    elif user_type == 'delivery_partner':
+        home="/delivery"
+    else: 
+        home="/home"
     return render_template('delivery.html', home=home, data=order_details)
 
 
@@ -256,7 +278,20 @@ def customer_orders():
             new_val = {**otd, **order_id}
             order_details.append(new_val)
     
+    # Checks if current user already has a copy of the blockchain, if not, 
+    # This function will request it from Server
+    get_thread = threading.Thread(target=get_blockchain_copy)
+    get_thread.daemon = True
+    get_thread.start()
+
     global home
+    # show different home page based on user type
+    if user_type == 'supplier':
+        home="/seller_orders"
+    elif user_type == 'delivery_partner':
+        home="/delivery"
+    else: 
+        home="/home"
     return render_template('customer_orders.html', home=home, data=order_details)
 
 
@@ -267,11 +302,27 @@ def seller_orders():
     request_seller_orders = db.collection("orders").get()
     order_details = []
 
+    global home
+    print(user_type)
+    # show different home page based on user type
+    if user_type == 'supplier':
+        home="/seller_orders"
+    elif user_type == 'delivery_partner':
+        home="/delivery"
+    else: 
+        home="/home"
+
     for order in request_seller_orders:
         order_id = {"id": order.id}
         otd = order.to_dict()
         new_val = {**otd, **order_id}
         order_details.append(new_val)
+
+    # Checks if current user already has a copy of the blockchain, if not, 
+    # This function will request it from Server
+    get_thread = threading.Thread(target=get_blockchain_copy)
+    get_thread.daemon = True
+    get_thread.start()
 
     if request.method == 'POST':
         # updates shipping status
@@ -288,7 +339,7 @@ def seller_orders():
             db.collection("orders").document(oid).update({"status": "approved"})
             flash('Order is approved!')
         elif request.form.get('cancel') == 'cancel':
-            amended_order["status"] = "approved"
+            amended_order["status"] = "cancelled"
             print("Order Details: ", amended_order)
 
             db.collection("orders").document(oid).update({"status": "cancelled"})
@@ -296,14 +347,13 @@ def seller_orders():
 
         # Add Data to Blockchain
         # Use Threading as there will be multiple functions being executed tied to callback functions
-        add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_user,amended_order,))
+        add_data_thread = threading.Thread(target=add_data_to_blockchain, args=(curr_email,amended_order,))
         add_data_thread.daemon = True
         add_data_thread.start()
         add_data_thread.join()
 
         return redirect('seller_orders')
 
-    global home
     return render_template('seller_orders.html', home=home, data=order_details)
 
 

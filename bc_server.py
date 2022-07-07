@@ -172,35 +172,60 @@ class bc_server():
         # Watch the document for changes
         self.doc_watch = requests_coll.on_snapshot(self.on_requests_snapshot)
     
-    # Callback function to capture changes to lock availability
+    # Callback function to capture changes to requests made by clients
     def on_requests_snapshot(self, coll_snapshot, changes, read_time):
-        requests_list = []
+        self.requests_list = []
 
         try:
             for requests in coll_snapshot:
                 # print(requests.to_dict())
-                requests_list.append(requests.to_dict()) 
+                self.requests_list.append(requests.to_dict()) 
             
-            print("\nReceived new lock request")
         except Exception as e:
             print("While handling requests: ", e)
 
-        if (requests_list):
-            requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
-            self.earliest_requestor = requests_list[0].get('client_id')
-            self.earliest_requestor_type = requests_list[0].get('user_type')
-            print(f'> Requestor: {self.earliest_requestor}, Requestor Type: {self.earliest_requestor_type}')
-            
-            # Start polling for client to add Block details to temp_new_block
-            self.poll_temp_block()
+        if (self.requests_list):
+            print("\nReceived new lock request")
 
-            # Assign lock to client
-            self.assign_lock(self.earliest_requestor)
-
-            # Remove request since lock has been assigned to the client
-            self.remove_request_lock(self.earliest_requestor, self.earliest_requestor_type)
+            self.check_requests()
 
         # !! Don't release callback as need to indefinitely check for requests
+
+    # Check if there are any other requests incoming while executing other functions
+    def check_requests(self):
+        requests_coll = self.db.collection_group('requestors').stream()
+        new_requests = []
+        for requests in requests_coll:
+            new_requests.append(requests.to_dict())
+        
+        # Combine current requests list with the newly streamed requests
+        self.requests_list = list({x['client_id']:x for x in self.requests_list + new_requests}.values())
+        if (self.requests_list):
+            self.requests_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
+            self.earliest_requestor = self.requests_list[0].get('client_id')
+            self.earliest_requestor_type = self.requests_list[0].get('user_type')
+            print(f'> Requestor: {self.earliest_requestor}, Requestor Type: {self.earliest_requestor_type}')
+
+            # Check that current lock state is 0 (available)
+            while self.lock != 0:
+                print("Lock currently unavailable, polling for changes")
+                self.poll_lock()
+                time.sleep(5)
+
+            # ensure lock is released by previous client
+            if self.lock == 0:
+                # Start polling for client to add Block details to temp_new_block
+                self.poll_temp_block()
+
+                # Assign lock to client
+                self.assign_lock(self.earliest_requestor)
+
+                # Remove request since lock has been assigned to the client
+                self.remove_request_lock(self.earliest_requestor, self.earliest_requestor_type)
+
+                # Remove request from requests_list
+                self.requests_list = list(filter(lambda i: i['client_id'] == self.earliest_requestor, self.requests_list))
+                print(self.requests_list)
 
     # Assign lock to the client through its client id
     def assign_lock(self, client_id):
@@ -212,6 +237,7 @@ class bc_server():
                 u'lock': -1
             }
         )
+        self.lock = -1
         print("Assigned lock to: ", client_id)
     
     # Once done assigning lock to client, remove its request from the list of requestors
@@ -240,8 +266,8 @@ class bc_server():
         print(f'> Current lock: {curr_lock}, Assigned Client: {assigned_client}')
 
         # Ensure lock is set back to available (0) and assigned client releases the lock before releasing callback
+        self.lock = curr_lock
         if (curr_lock == 0 and assigned_client == ''):
-            self.lock = curr_lock
             print("Client released lock")
             self.lock_callback_done.set()
 
@@ -306,7 +332,7 @@ class bc_server():
         curr_ack = doc_snapshot[0].get('ack')
 
         # Ensure all clients have acknowledged before releasing callback
-        if (curr_ack == self.clients_count):
+        if (curr_ack >= self.clients_count):
             print("Clients ack-ed") # TODO: Add count validation check, due to multiple prints
             self.ack_callback_done.set()
             
@@ -315,6 +341,9 @@ class bc_server():
             new_block_doc.delete()
 
             self.ack_doc.update({'ack':0})
+
+            # Check any requests pending
+            self.check_requests()
 
     def saveChain(self, bcObj, name="savedChain"):
         try:
@@ -409,8 +438,6 @@ class bc_server():
             # self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).delete()
 
             self.blockchainReqCallbackDone.set() # Stop the thread
-
-
 
 
 if __name__ == '__main__':
