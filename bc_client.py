@@ -231,7 +231,7 @@ class bc_client():
     def poll_new_block(self):
         # Create an Event for notifying main Thread
         self.new_block_callback_done = threading.Event()
-        self.new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
+        self.new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
 
         # Watch the document for changes
         self.new_block_doc_watch = self.new_block_doc.on_snapshot(self.on_new_block_snapshot)
@@ -240,26 +240,30 @@ class bc_client():
     # - Add block to client's copy of blockchain 
     # - Send acknowledgement to Firebase
     def on_new_block_snapshot(self, doc_snapshot, changes, read_time):
-        available = doc_snapshot[0].get('new_available')
-        if available > 0:
-            hv_received = self.check_received_block_ack()
-            print("Previously Received Current Block to Add: ", hv_received)
-            if not hv_received:
-                hv_received = True
-                self.get_new_block()
-            
-            self.new_block_callback_done.set()
+        # available = doc_snapshot[0].get('new_available')
+        # if available > 0:
+        for change in changes:
+            # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
+            if change.type.name == 'ADDED' or change.type.name == 'MODIFIED': 
+                if doc_snapshot:
+                    hv_received = self.check_received_block_ack()
+                    print("Previously Received Current Block to Add: ", hv_received)
+                    if not hv_received:
+                        hv_received = True
+                        self.get_new_block()
+                    
+                    self.new_block_callback_done.set()
 
-            print("[Added new block to Blockchain] Sent acknowledgement! ")
+                    print("[Added new block to Blockchain] Sent acknowledgement! ")
 
     # Check if client has already acknowledge receive current block 
     def check_received_block_ack(self):
-        self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK).get()
+        self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK)
         client_id=self.curr_client_id.split('@')[0]
         ack_key = str(client_id+'_ack')
 
         try:
-            ack_count = self.ack_doc.get(ack_key)
+            ack_count = self.ack_doc.get().get(ack_key)
             if ack_count != 0:
                 return True # Received
         except:

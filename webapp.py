@@ -110,7 +110,8 @@ def home():
 
 def get_blockchain_copy():
     global bc
-    bc = bc_client(curr_email)
+    if bc == '':
+        bc = bc_client(curr_email)
     bc.check_new_user()
 
 @app.route("/receiver", methods=["POST", 'GET'])

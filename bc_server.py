@@ -313,8 +313,8 @@ class bc_server():
         new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
         new_block_doc.set(new_block)
 
-        new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
-        new_block_doc.set({ 'new_available' : 1 })
+        # new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
+        # new_block_doc.set({ 'new_available' : 1 })
 
         print("Sent Block to Clients! ")
 
@@ -339,13 +339,10 @@ class bc_server():
         for key, value in curr_ack.items():
             clients_ack.append(key) # client ack, to reset to 0 once all ack
             total_ack += value # ack count
-        # for items in curr_ack:
-        # print(curr_ack)
-        # curr_ack = doc_snapshot[0].get('ack')
 
         # Ensure all clients have acknowledged before releasing callback
         if (total_ack >= self.clients_count):
-            print("Clients ack-ed") # TODO: Add count validation check, due to multiple prints
+            print("Clients ack-ed")
             self.ack_callback_done.set()
             
             # Once all clients have acknowledged, remove block details
