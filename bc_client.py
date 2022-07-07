@@ -167,9 +167,6 @@ class bc_client():
                 # self.request_lock(self.curr_client_id) # Request for lock again 
                 # Ensure lock is -1 and assigned_user is this current user before executing other functions
 
-            # Once outside of while, get new block to add to blockchain
-            self.poll_new_block()
-
         if self.lock == -1 and self.curr_client_id == self.lock_client:
             return True
 
