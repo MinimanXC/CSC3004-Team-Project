@@ -75,6 +75,7 @@ class bc_server():
         self.poll_blockchain_request()
         self.poll_lock()
         self.poll_requests()
+        self.poll_ack()
         
         # Indefinitely check that no one is holding lock or have any requests
         while True:
@@ -329,18 +330,27 @@ class bc_server():
     
     # Callback function to capture changes to lock availability
     def on_ack_snapshot(self, doc_snapshot, changes, read_time):
-        curr_ack = doc_snapshot[0].get('ack')
+        curr_ack = doc_snapshot[0].to_dict()
+        total_ack = 0
+        clients_ack = []
+        for key, value in curr_ack.items():
+            clients_ack.append(key) # client ack, to reset to 0 once all ack
+            total_ack += value # ack count
+        # for items in curr_ack:
+        # print(curr_ack)
+        # curr_ack = doc_snapshot[0].get('ack')
 
         # Ensure all clients have acknowledged before releasing callback
-        if (curr_ack >= self.clients_count):
+        if (total_ack >= self.clients_count):
             print("Clients ack-ed") # TODO: Add count validation check, due to multiple prints
             self.ack_callback_done.set()
             
             # Once all clients have acknowledged, remove block details
             new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
             new_block_doc.delete()
-
-            self.ack_doc.update({'ack':0})
+            
+            for clients in clients_ack:
+                self.ack_doc.update({clients:0})
 
             # Check any requests pending
             self.check_requests()

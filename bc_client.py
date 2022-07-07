@@ -75,6 +75,8 @@ class bc_client():
 
         #self.pollRequest()
         self.poll_new_block()
+
+        self.past_block_doc = {}
         # self.main()
 
     def main(self):
@@ -163,8 +165,10 @@ class bc_client():
             while self.lock != -1 or self.curr_client_id != self.lock_client:
                 time.sleep(2)
                 # self.request_lock(self.curr_client_id) # Request for lock again 
-
                 # Ensure lock is -1 and assigned_user is this current user before executing other functions
+
+            # Once outside of while, get new block to add to blockchain
+            self.poll_new_block()
 
         if self.lock == -1 and self.curr_client_id == self.lock_client:
             return True
@@ -239,14 +243,44 @@ class bc_client():
     # - Send acknowledgement to Firebase
     def on_new_block_snapshot(self, doc_snapshot, changes, read_time):
         if doc_snapshot:
-            new_block_to_add = doc_snapshot[0]
+            hv_received = self.check_received_block_ack()
+            print("Previously Received Current Block to Add: ", hv_received)
+            if not hv_received:
+                self.get_new_block()
+            
+            # self.new_block_callback_done.set()
+
+            print("[Added new block to Blockchain] Sent acknowledgement! ")
+
+    # Check if client has already acknowledge receive current block 
+    def check_received_block_ack(self):
+        self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK).get()
+        client_id=self.curr_client_id.split('@')[0]
+        ack_key = str(client_id+'_ack')
+
+        try:
+            ack_count = self.ack_doc.get(ack_key)
+            if ack_count != 0:
+                return True # Received
+        except:
+            print("Have not received")
+            return False # Yet to add
+
+    def get_new_block(self):
+        new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK).get()
+
+        # Check that data exists and was not previously detected
+        if new_block_doc.exists and self.past_block_doc != new_block_doc.to_dict():
+            self.past_block_doc = new_block_doc.to_dict()
+            print("================== NEW DATA ==================")
+            print(self.past_block_doc)
             
             # Add block to existing Blockchain
             try:
                 with open(BLOCKCHAIN_PATH, 'rb') as bc_file:
                     bc = pickle.load(bc_file)
             
-                new_block = Block(new_block_to_add.to_dict())
+                new_block = Block(new_block_doc.to_dict())
                 bc.addBlock(new_block)
 
                 with open(BLOCKCHAIN_PATH, 'wb') as bc_file:
@@ -264,19 +298,16 @@ class bc_client():
                 requestBackupColl.set(requestDetails)
                 print("Uploaded blockchain backup to Firebase!")
 
-                # Increase ack count
+                # Add ack count
                 self.ack_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_ACK)
-                ack_count = self.ack_doc.get().get('ack')
-                self.ack_doc.update({
-                    'ack': ack_count+1,
-                    'ack_time': firestore.SERVER_TIMESTAMP
-                })
+                client_id=self.curr_client_id.split('@')[0]
+                ack_key = str(client_id+'_ack')
+                self.ack_doc.update({ ack_key: 1 })
+                print("Ack: ", ack_key)
+
             except:
                 print("error occurred creating new block")
-            
-            # self.new_block_callback_done.set()
 
-            print("[Added new block to Blockchain] Sent acknowledgement! ")
 
     # 5. Returns the Blockchain saved in .bc file
     def get_saved_blockchain(self):
