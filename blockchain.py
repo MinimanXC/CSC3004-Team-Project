@@ -14,10 +14,9 @@ class Block:
     _prevHash: str
     previous: Optional['Block']
     _data: Optional[dict] # Dictionary which includes timestamp, transaction data and wtv data that needs to be added
-    _nonce: int
 
     # Old constructor (but might still be relevant depending on code structure)
-    def __init__(self, previous=None, data=None, nonce=0, hash=None, prevHash=None) -> None:
+    def __init__(self, previous=None, data=None, hash=None, prevHash=None) -> None:
 
         if previous is None:  # If genesis block, id will be 0
             self._blockId = 0
@@ -28,7 +27,6 @@ class Block:
         self._prevHash = prevHash
         self._data = data
         self.previous = previous
-        self._nonce = nonce
 
     # Always instantiate using this constructor unless you know what you're doing
     def __init__(self, data=None) -> None:
@@ -38,7 +36,6 @@ class Block:
         self._blockId = 0
         self._data = data
         self.previous = None
-        self._nonce = 0
 
     # Recursive function 
     def getPreviousHash(self) -> str:
@@ -51,7 +48,7 @@ class Block:
 
     # Function to calculate hash based on previous hash and current data. Do not call if validity of block needs to be checked
     def getHash(self) -> str:
-        self._hash = calculateHash(self._blockId, self.getPreviousHash(), self._data, self._nonce)
+        self._hash = calculateHash(self._blockId, self.getPreviousHash(), self._data)
         return self._hash
 
     # Returns only the hash string instead of recalculating the hash and returning the updated hash
@@ -64,9 +61,10 @@ class Block:
 
     # Function may be removed if adopting permissioned blockchain. Replace with cryptography keys for authentication of users(?)
     def mine(self, zeroCount) -> None:
+        pass
         # While the first x values in the hash are not equal to x leading zeros
-        while self.getHash()[:zeroCount] != '0' * zeroCount:
-            self._nonce += 1 # Increment nonce. Nonce will be ever changing and rehashed in getHash() until conditions are satisfied
+        #while self.getHash()[:zeroCount] != '0' * zeroCount:
+            #self._nonce += 1 # Increment nonce. Nonce will be ever changing and rehashed in getHash() until conditions are satisfied
 
     def setBlockID(self, id) -> None:
         self._blockId = id
@@ -81,16 +79,16 @@ class Block:
     def getData(self) -> dict:
         return self._data
 
-    def getNonce(self) -> int:
-        return self._nonce
+    # def getNonce(self) -> int:
+    #     return self._nonce
 
     def __str__(self) -> str:
-        return str('\nBlock %s\nHash: %s\nPrevious Hash: %s\nData: %s\nNonce: %s' % (
+        return str('\nBlock %s\nHash: %s\nPrevious Hash: %s\nData: %s' % (
             self._blockId,
             self._hash,
             self._prevHash,
-            str(self._data),
-            self._nonce)
+            str(self._data))
+            #self._nonce)
         )
 
 # Glorified LinkedList (Change my mind)
