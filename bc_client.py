@@ -223,7 +223,6 @@ class bc_client():
         )
 
         print("Sent completion of adding New Block Details! ")
-        self.poll_new_block()
 
     # ====== 4. Execute after login to check if server has sent over a new block ======
     # Check if server has sent a new Block to add to Blockchain
