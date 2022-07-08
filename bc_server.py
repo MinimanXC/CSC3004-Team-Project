@@ -62,6 +62,8 @@ class bc_server():
         # Initialize firestore instance
         self.db = firestore.client()
 
+        self.clearDeadlocks()
+
         # Attempt to load the chain
         self.blockchain = self.loadChain()
 
@@ -458,6 +460,23 @@ class bc_server():
 
             self.blockchainReqCallbackDone.set() # Stop the thread
 
+    def clearDeadlocks(self):
+        lock = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
+        availability = (lock.to_dict()).get('lock')
+        lock_client = (lock.to_dict()).get('assigned_client')
+
+        # If the lock is unavailable but the lock belongs to me on boot
+        if availability == -1 and self.curr_client_id == lock_client:
+            # Call the function to release the lock
+            lock_avail_doc = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL) 
+            lock_avail_doc.update(
+                {
+                    u'assigned_client': "",
+                    u'last_change': firestore.SERVER_TIMESTAMP,
+                    u'last_client': lock_client,
+                    u'lock': 0
+                }
+            )
 
 if __name__ == '__main__':
     bc_server()

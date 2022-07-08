@@ -74,6 +74,10 @@ class bc_client():
         self.user_type = 'client' # Either client or supplier
         self.curr_client = self.user_type + '_' + str(self.curr_client_id)
 
+        # Error preventing and self healing functions
+        self.clearDeadlocks()
+        self.request_blockchain()
+
         #self.pollRequest()
         self.poll_new_block()
 
@@ -81,7 +85,7 @@ class bc_client():
         # self.main()
 
     def main(self):
-        self.check_new_user()
+        #self.check_new_user() # Function renamed
         self.request_lock() # Request lock from server if want to add block to blockchain
         self.check_lock() # Check if lock is available (0) or not (-1)
         #self.send_new_block_details() # Send details to be added to new block
@@ -91,21 +95,25 @@ class bc_client():
             time.sleep(2)
     
     # ====== 1. Execute after user successfully login ======
+    # Renamed function from check_new_user to request_blockchain
+    # NEW:
+    # Make a request to the server to send a copy of their blockchain over to either self heal or update client blockchain
+    # OLD:
     # Check if copy of Blockchain exists on client's machine (if new user or not)
     # If not, make a request to server to send a copy over
-    def check_new_user(self):
-        if not (os.path.exists(BLOCKCHAIN_PATH)):
-            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_id)
-            bc_request_details = {
-                'client_id' : self.curr_client_id,
-                'request_time' : firestore.SERVER_TIMESTAMP,
-                'user_type': self.user_type
-            }
+    def request_blockchain(self):
+        #if not (os.path.exists(BLOCKCHAIN_PATH)): # If condition removed to favour self healing and update
+        self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_id)
+        bc_request_details = {
+            'client_id' : self.curr_client_id,
+            'request_time' : firestore.SERVER_TIMESTAMP,
+            'user_type': self.user_type
+        }
 
-            self.request_blockchain_doc.set(bc_request_details)
-            print("\nSent Blockchain Request to Server! ")
-            
-            self.poll_blockchain_copy()
+        self.request_blockchain_doc.set(bc_request_details)
+        print("\nSent Blockchain Request to Server! ")
+        
+        self.poll_blockchain_copy()
     
     # Initiate threading to poll for a copy of blockchain sent by server
     def poll_blockchain_copy(self):
@@ -319,6 +327,125 @@ class bc_client():
             bc = pickle.load(bc_file)
 
         return bc
+
+    def clearDeadlocks(self):
+        lock = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
+        availability = (lock.to_dict()).get('lock')
+        lock_client = (lock.to_dict()).get('assigned_client')
+
+        # If the lock is unavailable but the lock belongs to me on boot
+        if availability == -1 and self.curr_client_id == lock_client:
+            # Call the function to release the lock
+            self.complete_sending()
+
+
+    # Called by getUpdatedChain() to compare 2 blockchains and validate them
+    def isValidChain(self, chain1: Blockchain, chain2: Blockchain):
+        size1 = chain1.chain.size()
+        size2 = chain2.chain.size()      
+        temp1 = chain1.chain.head
+        temp2 = chain2.chain.head
+
+        if chain1.isValid() == False or chain2.isValid() == False:
+            return False
+
+        # Iterate through the chain with the shortest length
+        if (size1 < size2):
+            # Because I designed a reversed linked list, I need to move the pointer of the longest chain to be at the head of the shortest chain in order to do a comparison iteratively
+            for i in range(size2 - size1):
+                # Treat as i++
+                temp2 = temp2.prev
+        elif (size2 < size1):
+            # Because I designed a reversed linked list, I need to move the pointer of the longest chain to be at the head of the shortest chain in order to do a comparison iteratively
+            for i in range(size1 - size2):
+                # Treat as i++
+                temp1 = temp1.prev
+
+        # Executed once both pointers are same sized and not null
+        while temp1 is not None:
+            if temp1.data.getCalculatedHash() != temp2.data.getCalculatedHash() or temp1.data.getPreviousCalculatedHash() != temp2.data.getPreviousCalculatedHash() or temp1.data.getData() != temp2.data.getData() or temp1.data.getBlockID() != temp2.data.getBlockID():
+                return False
+            # Treat as i++
+            temp2 = temp2.prev
+            temp1 = temp1.prev
+
+        return True
+
+
+    def pollUpdatedChain(self):
+        # Create an Event for notifying main Thread
+        self.blockchainReqCallbackDone = threading.Event()
+        self.blockchainReqResDoc = self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc')
+        
+        # Watch the document for changes
+        self.copyResponseDocWatch = self.blockchainReqResDoc.on_snapshot(self.getUpdatedChain)
+
+    # Function only runs on init. A function to allow offline clients to update their blockchain with new blocks alongside providing redundancy in the event local blockchain backup is lost.
+    def getUpdatedChain(self, coll_snapshot, changes, read_time):
+
+        # Validate the updated chain with self chain
+
+        # If authentic, update chain with new blocks
+
+        response_list = []
+
+        try:
+            for response in coll_snapshot: # For each document in a sub collection
+                # print(requests.to_dict())
+                response_list.append(response.to_dict()) 
+            
+            print("Client", self.curr_client_id, "has found backup blockchains! Attempting to do checks and authentication...")
+        except Exception as e:
+            print("While handling reponse: ", e)
+
+        if response_list:
+            response_list.sort(key=lambda x:x['request_time']) # sort by earliest request time
+
+            length = 0
+            longestBC = None
+            clientID = "Nobody" # Variable used for printing. Remove if no longer printing logs
+
+            for entry in response_list: # Iterate through every backup entry
+                bcBlob = entry.get('blockchain')
+                bc = pickle.loads(bcBlob) # Unblobify the raw data to blockchain form
+
+                if length == 0: # Base case
+                    length = bc.chain.size()
+                    longestBC = bc
+                    clientID = entry.get('clientID')
+
+                if bc.chain.size() > length: # If a blockchain is longer than current longest
+                    length = bc.chain.size()
+                    longestBC = bc
+                    clientID = entry.get('clientID')
+
+            print(clientID, "has the longest backup chain. Attempting to do checks and validation...")
+
+            try:
+                saveFile = open('savedChain.bc', 'rb') # TODO: Change the file path when using Docker Persistent Storage
+                savedChain = pickle.load(saveFile)
+                print("There is a local backup on", self.curr_client_id,". Attempting to catch you up")
+            except:
+                print("There is no local backup of the chain on", self.curr_client_id, ".If this seems wrong, it means local copy of the blockchain has been compromised!")
+
+                backupCount = len(self.db.collection(BLOCK_COLL).document(BLOCKCHAIN_BACKUP).collection('savedChain.bc').get())
+                if backupCount > 0:
+                    print("Attempting to retrieve cloud backup of the chain...")
+                    self.requestBackup()
+                else:
+                    print("Creating a new empty chain...")
+                    return Blockchain() # Return an empty blockchain temporarily. If no backup, blockchain is empty.
+
+            if (self.isValidChain())
+
+            print(longestBC.printChain())
+            # Pickling the chain
+            saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
+            # Write object into file
+            pickle.dump(longestBC, saveFile)                     
+            saveFile.close()
+
+            self.blockchainReqCallbackDone.set() # Stop the thread
 
 if __name__ == '__main__':
     bc_client()

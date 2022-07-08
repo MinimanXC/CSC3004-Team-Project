@@ -68,6 +68,7 @@ class Block:
 
     def setBlockID(self, id) -> None:
         self._blockId = id
+        self.getHash()
 
     def getBlockID(self) -> int:
         return self._blockId
@@ -111,7 +112,7 @@ class Blockchain():
         else:
             block.previous = self.chain.head.data
             block.setBlockID(block.previous.getBlockID() + 1)
-            block.getHash()
+            #block.getHash() # No need to call this cause setBlockID() has been refactored to call it instead to increase security
             #self.mineBlock(block)
             self.chain.insert(block)
 
