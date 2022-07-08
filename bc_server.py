@@ -65,7 +65,7 @@ class bc_server():
         self.clearDeadlocks()
 
         # Attempt to load the chain
-        self.blockchain = self.loadChain()
+        self.blockchain = self.loadChain() # Besides clearing deadlocks, always call this first so that the server will have a blockchain
 
         self.lock = -1
         self.all_ack = 0
