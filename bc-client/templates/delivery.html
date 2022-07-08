@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='card.css') }}">
+
+    <p class="title"> Delivery Orders</p>
+    <p class="sub_title"> Select an order to change delivery status.</p>
+
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+  <div class="notification is-danger">
+      {{ messages[0] }}.
+  </div>
+{% endif %}
+{% endwith %}
+
+{% for item in data %}
+
+    <div class='card'>
+  <div class='card_left'>
+    <img src='/static/delivery.png'>
+  </div>
+  <div class='card_right'>
+    <h1>Order #{{ item.id }}</h1>
+    <div class='card_right_order_details'>
+      <ul class="user_details">
+        <li>Client email: {{ item.client_email }}</li>
+        <li>Order status: {{ item.status }}</li>
+      </ul>
+        {% if item.status == "approved"%}
+        <form method="post" enctype="multipart/form-data" >
+            <div class="button_row">
+              <div class='card_right__button'>
+                    <input id="{{ item.id }}-fileInput" type="file" name="{{ item.id }}-fileInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="return check_photo(this);" />
+                    <input name="oid" value="{{ item.id }}" style="display:none;" />
+                  <input
+                    type="button"
+                    class="card_right__button"
+                    value="CHOOSE DELIVERY IMAGE"
+                    onclick="document.getElementById('{{ item.id }}-fileInput').click();"
+                  />
+              </div>
+                <div class='card_right_submit_button'>
+                    <button type="submitBtn" disabled name="submitBtn" id="{{ item.id }}-submitBtn">Upload</button>
+              </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+     </div>
+    </div>
+
+{% if not loop.last %}
+     <div class="space_height"></div>
+{% endif %}
+{% endfor %}
+
+{% endblock content %}

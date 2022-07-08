@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='card.css') }}">
+<p class="title">Orders</p>
+<p class="sub_title"> Select an order to change order status.</p>
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+  <div class="notification is-danger">
+      {{ messages[0] }}.
+  </div>
+{% endif %}
+{% endwith %}
+
+{% for item in data %}
+    <div class='m_card'>
+  <div class='m_card_left'>
+    <img src='/static/pills.png'>
+  </div>
+  <div class='m_card_right'>
+    <h1>Order #{{ item.id }}</h1>
+    <div class='card_right_order_details'>
+      <ul class="user_details">
+        <li>Client email: {{ item.client_email }}</li>
+        <li>Order status: {{ item.status }}</li>
+      </ul>
+
+      <ul class="medication">
+        <li>Product</li>
+        <li>Price</li>
+          {% for key, value in item.products.items() %}
+        <li>{{ key }}</li>
+        <li>{{ value }}</li>
+          {% endfor %}
+      </ul>
+
+
+        {% if item.status == "pending"%}
+        <form method="post" enctype="multipart/form-data" >
+            <div class="button_row">
+              <div class='card_right_cancel_button'>
+                <input name="oid" value={{ item.id }} style="display:none;" />
+                <button name='cancel' value='cancel' type="submit">Cancel</button>
+              </div>
+                <div class='card_right_submit_button'>
+                    <button name='approve' value='approve' type="submit">Approve</button>
+              </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+     </div>
+    </div>
+
+{% if not loop.last %}
+     <div class="space_height"></div>
+{% endif %}
+{% endfor %}
+
+    </div>
+{% endblock content %}

@@ -1,0 +1,31 @@
+----- SERVER -----
+
+**Docker**
+
+$ docker image rm bc-server
+$ docker build -t bc-server .
+$ docker tag bc-server:latest syabz03/bc-server:latest
+
+**Kubernetes**
+
+Create our Namespace 
+$ kubectl create namespace bc-server
+
+Create our Persistent Volume and Persistent Volume Claim
+$ kubectl create -f persistent_volume.yml
+$ kubectl create -f persistent_volume_claim.yml
+
+Create our Deployment Services
+$ kubectl create -f bc-server.deployment.yml 
+$ kubectl create -f bc-server.service.yml
+
+Check on the Deployed Server 
+$ kubectl get all -n bc-server
+
+Check out Python prints!
+$ kubectl logs pod/bc-server-7f994bd48b-62sr7 -n bc-server
+
+e.g. $ kubectl logs pod/bc-server-7f994bd48b-62sr7 -n bc-server
+
+Persistent Data
+$ kubectl exec -ti pod/bc-server-7f994bd48b-62sr7 -n bc-server -- ls -la ../app-data

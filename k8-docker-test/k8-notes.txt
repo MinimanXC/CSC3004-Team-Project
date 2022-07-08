@@ -1,60 +1,62 @@
 **Docker**
 
 - Server
-$ docker image rm k8-py-fb
-$ docker build -t k8-py-fb .
-$ docker tag k8-py-fb:latest k8-py-fb:latest
+$ docker image rm bc-server
+$ docker build -t bc-server .
+$ docker tag bc-server:latest syabz03/bc-server:latest
 
 - Client
-$ docker image rm bc_client
-$ docker build -t bc_client .
-$ docker run -p 4444:4444 -d bc_client
-$ docker tag bc_client:latest syabz03/bc_client:latest
+$ docker image rm bc-client
+$ docker build -t bc-client .
+$ docker run -p 4444:4444 -d bc-client
+$ docker tag bc-client:latest syabz03/bc-client:latest
 
 **Kubernetes**
 
 Add Namespace 
-$ kubectl create namespace k8-py-fb
+$ kubectl create namespace bc-server
 
 PV/PVC
 kubectl create -f persistent_volume.yml
 kubectl create -f persistent_volume_claim.yml
 
 Deployment/Services
-kubectl create -f k8_py_fb.deployment.yml 
-kubectl create -f k8_py_fb.service.yml
+kubectl create -f bc-server.deployment.yml 
+kubectl create -f bc-server.service.yml
 
 Get Services 
-$ kubectl get all -n k8-py-fb 
-$ kubectl get pv,pvc -n k8-py-fb 
-$ kubectl get services -n k8-py-fb -o wide
+$ kubectl get all -n bc-server
+$ kubectl get pv,pvc -n bc-server 
+$ kubectl get services -n bc-server -o wide
 $ kubectl get pods --all-namespaces
-$ kubectl describe pod <pod name> -n k8-py-fb 
-$ kubectl logs <pod name> -n k8-py-fb 
+$ kubectl describe pod <pod name> -n bc-server
+$ kubectl logs <pod name> -n bc-server
 
 * Delete Everything
-kubectl delete --all pods --namespace=k8-py-fb
-kubectl delete --all deployments --namespace=k8-py-fb
-kubectl delete --all services --namespace=k8-py-fb
+kubectl delete --all pods --namespace=bc-server
+kubectl delete --all deployments --namespace=bc-server
+kubectl delete --all services --namespace=bc-server
 
 PV/PVC set to retain so no point deleting
-# kubectl delete --all pvc --namespace=k8-py-fb 
-# kubectl delete --all pv --namespace=k8-py-fb  
+# kubectl delete --all pvc --namespace=bc-server
+# kubectl delete --all pv --namespace=bc-server
+# kubectl delete --all pvc --namespace=k8-py-fb
+# kubectl delete --all pv --namespace=k8-py-fb
 
 kubectl delete persistentvolumeclaim/appclaim --namespace=k8-py-fb
 kubectl delete persistentvolume/appdisk --namespace=k8-py-fb --grace-period=0 --force
 
 ### POD:
-kubectl get all -n k8-py-fb
-kubectl delete --all pods --namespace=k8-py-fb
+kubectl get all -n bc-server
+kubectl delete --all pods --namespace=bc-server
 
-kubectl describe pod/k8-py-fb-85c697789f-48rt2 -n k8-py-fb 
-kubectl describe persistentvolumeclaim/appclaim -n k8-py-fb 
-kubectl describe persistentvolume/appdisk -n k8-py-fb 
+kubectl describe pod/k8-py-fb-85c697789f-48rt2 -n bc-server
+kubectl describe persistentvolumeclaim/appclaim -n bc-server
+kubectl describe persistentvolume/appdisk -n bc-server
 
-kubectl logs pod/k8-py-fb-5658997696-nqd6b -n k8-py-fb 
-kubectl exec -ti pod/k8-py-fb-5658997696-nqd6b -n k8-py-fb -- ls -la ../app-data
-kubectl cp k8-py-fb/k8-py-fb-85c697789f-5hsq7:../app-data/test_file.txt /tmp/app-data/testfile.txt 
+kubectl logs pod/bc-server-5658997696-nqd6b -n bc-server
+kubectl exec -ti pod/bc-server-5658997696-nqd6b -n bc-server -- ls -la ../app-data
+kubectl cp k8-py-fb/bc-server-85c697789f-5hsq7:../app-data/test_file.txt /tmp/app-data/testfile.txt 
 
 ### Notes:
 # - Files in ../app-data will persist unless persistent_volume or persistent_volume_claim is corrupted 

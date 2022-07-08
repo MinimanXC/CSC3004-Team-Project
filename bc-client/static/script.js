@@ -111,7 +111,7 @@ function submitOrder() {
         body:JSON.stringify(inventory)}).then(res=>{
                 if(res.ok){
                     emptyCart()
-                    alert("Submitted Order!")
+                    alert("Order Submitted!")
                     return res.json()
                 }else{
                     alert("something is wrong")
@@ -141,4 +141,18 @@ function emptyCart() {
           alerts.classList.remove("message");
       }
     }
+}
+
+function check_photo(fileInput){
+    orderId = fileInput.id.substring(0, fileInput.id.indexOf('-'));
+    let btn = document.getElementById(orderId +'-submitBtn');
+    if(!fileInput.value){
+        alert('Please choose a photo');
+        return false;
+    }
+    else{
+        btn.removeAttribute('disabled');
+        return false;
+    }
+    return false;
 }

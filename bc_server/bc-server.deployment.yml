@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bc-server
+  namespace: bc-server
+  labels:
+    app: bc-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bc-server
+  template:
+    metadata:
+      labels:
+        app: bc-server
+    spec:
+      containers:
+      - name: bc-server
+        image: bc-server:latest
+        imagePullPolicy: "IfNotPresent"
+        ports:
+        - containerPort: 80
+          name: http-node
+        - containerPort: 443
+          name: https-node
+        volumeMounts:
+        - name: bc-server-storage
+          mountPath: "/server-data"
+      volumes:
+        - name: bc-server-storage
+          persistentVolumeClaim:
+            claimName: serverclaim
