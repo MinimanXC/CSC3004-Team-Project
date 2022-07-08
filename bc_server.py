@@ -460,6 +460,7 @@ class bc_server():
 
             self.blockchainReqCallbackDone.set() # Stop the thread
 
+    # Clear potential deadlocks. Function present in server for added redundancy to the effect
     def clearDeadlocks(self):
         lock = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
         availability = (lock.to_dict()).get('lock')
