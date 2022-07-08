@@ -328,7 +328,7 @@ class bc_client():
 
         return bc
 
-    # Clear potential deadlocks
+    # Clear potential deadlocks in the event user crashes
     def clearDeadlocks(self):
         lock = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
         availability = (lock.to_dict()).get('lock')

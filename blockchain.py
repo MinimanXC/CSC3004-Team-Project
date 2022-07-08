@@ -1,8 +1,6 @@
-from itertools import chain
 from typing import Optional
 from tools import calculateHash
 from linkedlist import LinkedList
-import pickle
 
 GENESIS_HASH = '0' * 64 # Constant value of 64 zeros. Used by genesis block as base case
 
