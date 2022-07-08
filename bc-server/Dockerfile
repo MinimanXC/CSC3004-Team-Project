@@ -19,7 +19,6 @@ EXPOSE 443
 
 # Setting Persistent data
 VOLUME ["/server-data"]
-ADD savedChain.bc /server-data/savedChain.bc
 
 ENV PYTHONUNBUFFERED=1
 

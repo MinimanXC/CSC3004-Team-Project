@@ -52,6 +52,7 @@ REQUEST_BLOCKCHAIN = "request_blockchain"
 BLOCKCHAIN_BACKUP = "blockchain_backup"
 BLOCKCHAIN_ACK = "blockchain_ack"
 BLOCKCHAIN_COPY = "blockchain_copy"
+SAVEDCHAIN = "../server-data/savedChain.bc"
 
 class bc_server():
 
@@ -68,6 +69,7 @@ class bc_server():
         self.lock = -1
         self.all_ack = 0
         self.clients_count = 10
+        self.past_block_doc = {}
         self.main()
 
     def main(self):
@@ -286,19 +288,27 @@ class bc_server():
     # Callback function to capture changes to temp_new_block
     # Client will populate this document with details of block to be added to Blockchain
     def on_temp_block_snapshot(self, doc_snapshot, changes, read_time):
-        if doc_snapshot:
-            temp_block = doc_snapshot[0]
-            client_id = temp_block.get('client_id')
-            print(f'> Temp Block By: {client_id}') 
+        for change in changes:
+            # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
+            if change.type.name == 'ADDED': 
+                if doc_snapshot:
+                    temp_block = doc_snapshot[0]
+                    client_id = temp_block.get('client_id')
+                    print(f'> Temp Block By: {client_id}') 
 
-            if self.earliest_requestor == client_id:
-                self.temp_block_callback_done.set()
-                self.temp_new_block_doc.delete() # Clear document since will be added to blockchain
-                print("Deleted",TEMP_NEW_BLOCK)
-            
-            self.add_block_to_blockchain(temp_block.to_dict())
-        else:
-            print("No new Block details")
+                    if self.earliest_requestor == client_id:
+                        self.temp_block_callback_done.set()
+                        self.temp_new_block_doc.delete() # Clear document since will be added to blockchain
+                        print("Deleted",TEMP_NEW_BLOCK)
+                    
+                    if self.past_block_doc != temp_block.to_dict():
+                        self.past_block_doc = temp_block.to_dict()
+                        print("================== NEW DATA ==================")
+                        print(self.past_block_doc)
+                        self.add_block_to_blockchain(temp_block.to_dict())
+
+                else:
+                    print("No new Block details")
     
     # Add details provided by client to Blockchain
     def add_block_to_blockchain(self, new_block_dict):
@@ -315,9 +325,6 @@ class bc_server():
         new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK)
         new_block_doc.set(new_block)
 
-        # new_block_doc = self.db.collection(BLOCK_COLL).document(NEW_BLOCK_AVAIL)
-        # new_block_doc.set({ 'new_available' : 1 })
-
         print("Sent Block to Clients! ")
 
         # Start polling for acknowledgement message sent by clients
@@ -333,7 +340,7 @@ class bc_server():
         # Watch the document for changes
         self.ack_doc_watch = self.ack_doc.on_snapshot(self.on_ack_snapshot)
     
-    # Callback function to capture changes to lock availability
+    # Callback function to capture changes to acknowledgement message
     def on_ack_snapshot(self, doc_snapshot, changes, read_time):
         for change in changes:
             # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
@@ -367,7 +374,7 @@ class bc_server():
     def saveChain(self, bcObj, name="savedChain"):
         try:
             # Pickling the chain
-            saveFile = open('../app-data/' + name + '.bc', 'ab') # Use binary mode (Important)
+            saveFile = open(SAVEDCHAIN, 'ab') # Use binary mode (Important)
             # Write object into file
             pickle.dump(bcObj, saveFile)                     
             saveFile.close()
@@ -377,7 +384,7 @@ class bc_server():
 
     def loadChain(self, name="savedChain", printChain=False): # Load the default chain for demo and grading purposes
         try:
-            saveFile = open('../app-data/' + name + '.bc', 'rb') # TODO: Change the file path when using Docker Persistent Storage
+            saveFile = open(SAVEDCHAIN, 'rb') # TODO: Change the file path when using Docker Persistent Storage
             savedChain = pickle.load(saveFile)
             print("\n----- CHAIN LOADED -----")
             if (printChain):
@@ -446,7 +453,7 @@ class bc_server():
             print("Blockchain has been updated with cloud backup data from", clientID)
             print(longestBC.printChain())
             # Pickling the chain
-            saveFile = open('savedChain.bc', 'ab') # Use binary mode (Important)
+            saveFile = open(SAVEDCHAIN, 'ab') # Use binary mode (Important)
             # Write object into file
             pickle.dump(longestBC, saveFile)                     
             saveFile.close()

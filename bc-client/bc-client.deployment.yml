@@ -1,33 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bc-server
-  namespace: bc-server
+  name: bc-client
+  namespace: bc-client
   labels:
-    app: bc-server
+    app: bc-client
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: bc-server
+      app: bc-client
   template:
     metadata:
       labels:
-        app: bc-server
+        app: bc-client
     spec:
       containers:
-      - name: bc-server
-        image: bc-server:latest
+      - name: bc-client
+        image: syabz03/bc-client
         imagePullPolicy: "IfNotPresent"
         ports:
         - containerPort: 80
           name: http-node
         - containerPort: 443
           name: https-node
+        - containerPort: 4444
+          name: flask-tcp
         volumeMounts:
-        - name: bc-server-storage
-          mountPath: "/server-data"
+        - name: bc-client-storage
+          mountPath: "/app-data"
       volumes:
-        - name: bc-server-storage
+        - name: bc-client-storage
           persistentVolumeClaim:
-            claimName: serverclaim
+            claimName: appclaim

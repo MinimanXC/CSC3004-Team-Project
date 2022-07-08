@@ -113,7 +113,7 @@ def get_blockchain_copy():
     global bc
     if bc == '':
         bc = bc_client(curr_email)
-    bc.check_new_user()
+    bc.request_blockchain()
 
 @app.route("/receiver", methods=["POST", 'GET'])
 def submit_order():
@@ -166,8 +166,8 @@ def blockchain_view():
         try:
             blockchain = bc.get_saved_blockchain()
             chainList = blockchain.getChain()
-        except:
-            print("Error occurred trying to read blockchain data")
+        except Exception as e:
+            print("Error occurred trying to read blockchain data", e)
 
         set_home_landing_page()
         return render_template('index.html', home_page=home_page, data=chainList[::-1])

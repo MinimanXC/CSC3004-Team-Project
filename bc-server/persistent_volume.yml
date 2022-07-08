@@ -11,4 +11,4 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: "/tmp"
+    path: "/private/tmp/server-data"

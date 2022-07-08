@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bc-client
+  name: bc-client
+  namespace: bc-client
+spec:
+  ports:
+  - port: 80
+    name: http-node
+  - port: 443
+    name: https-node
+  - port: 4444
+    targetPort: 4444
+    protocol: TCP
+    name: flask-tcp
+  selector:
+    app: bc-client
+  type: LoadBalancer

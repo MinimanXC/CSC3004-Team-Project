@@ -54,7 +54,7 @@ REQUEST_BLOCKCHAIN = "request_blockchain"
 BLOCKCHAIN_BACKUP = "blockchain_backup"
 BLOCKCHAIN_COPY = "blockchain_copy"
 BLOCKCHAIN_ACK = "blockchain_ack"
-BLOCKCHAIN_PATH = "savedChain.bc" # To change to persistent storage directory before deployment 
+BLOCKCHAIN_PATH = "../app-data/savedChain.bc"
 
 try:
     # Initialise Firebase SDK
@@ -74,6 +74,10 @@ class bc_client():
         self.user_type = 'client' # Either client or supplier
         self.curr_client = self.user_type + '_' + str(self.curr_client_id)
 
+        # Error preventing and self healing functions
+        self.clearDeadlocks()
+        self.request_blockchain()
+
         #self.pollRequest()
         self.poll_new_block()
 
@@ -81,7 +85,7 @@ class bc_client():
         # self.main()
 
     def main(self):
-        self.check_new_user()
+        #self.check_new_user() # Function renamed
         self.request_lock() # Request lock from server if want to add block to blockchain
         self.check_lock() # Check if lock is available (0) or not (-1)
         #self.send_new_block_details() # Send details to be added to new block
@@ -91,21 +95,25 @@ class bc_client():
             time.sleep(2)
     
     # ====== 1. Execute after user successfully login ======
+    # Renamed function from check_new_user to request_blockchain
+    # NEW:
+    # Make a request to the server to send a copy of their blockchain over to either self heal or update client blockchain
+    # OLD:
     # Check if copy of Blockchain exists on client's machine (if new user or not)
     # If not, make a request to server to send a copy over
-    def check_new_user(self):
-        if not (os.path.exists(BLOCKCHAIN_PATH)):
-            self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_id)
-            bc_request_details = {
-                'client_id' : self.curr_client_id,
-                'request_time' : firestore.SERVER_TIMESTAMP,
-                'user_type': self.user_type
-            }
+    def request_blockchain(self):
+        #if not (os.path.exists(BLOCKCHAIN_PATH)): # If condition removed to favour self healing and update
+        self.request_blockchain_doc = self.db.collection(BLOCK_COLL).document(REQUEST_BLOCKCHAIN).collection('blockchain_requestors').document(self.curr_client_id)
+        bc_request_details = {
+            'client_id' : self.curr_client_id,
+            'request_time' : firestore.SERVER_TIMESTAMP,
+            'user_type': self.user_type
+        }
 
-            self.request_blockchain_doc.set(bc_request_details)
-            print("\nSent Blockchain Request to Server! ")
-            
-            self.poll_blockchain_copy()
+        self.request_blockchain_doc.set(bc_request_details)
+        print("\nSent Blockchain Request to Server! ")
+        
+        self.poll_blockchain_copy()
     
     # Initiate threading to poll for a copy of blockchain sent by server
     def poll_blockchain_copy(self):
@@ -246,10 +254,7 @@ class bc_client():
             # Further execute only if the change are caused by a modify to a value (ignoring adding/deleting of document)
             if change.type.name == 'ADDED' or change.type.name == 'MODIFIED': 
                 if doc_snapshot:
-                    # hv_received = self.check_received_block_ack()
-                    # print("Previously Received Current Block to Add: ", hv_received)
-                    # if not hv_received:
-                    #     hv_received = True
+                    
                     self.get_new_block()
                     
                     self.new_block_callback_done.set()
@@ -319,6 +324,17 @@ class bc_client():
             bc = pickle.load(bc_file)
 
         return bc
+
+    # Clear potential deadlocks in the event user crashes
+    def clearDeadlocks(self):
+        lock = self.db.collection(BLOCK_COLL).document(LOCK_AVAIL).get()
+        availability = (lock.to_dict()).get('lock')
+        lock_client = (lock.to_dict()).get('assigned_client')
+
+        # If the lock is unavailable but the lock belongs to me on boot
+        if availability == -1 and self.curr_client_id == lock_client:
+            # Call the function to release the lock
+            self.complete_sending()
 
 if __name__ == '__main__':
     bc_client()

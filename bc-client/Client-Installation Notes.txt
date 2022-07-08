@@ -1,0 +1,51 @@
+----- CLIENT -----
+
+**Docker**
+
+Apply settings for Persistent Storage on Docker Desktop 
+* Navigate to Settings (Gear icon) > Resources > File Sharing, add directory "private/tmp/app-data"
+
+$ docker image rm syabz03/bc-client:latest
+$ docker image rm bc-client:latest
+$ docker build -t bc-client .
+$ docker tag bc-client:latest syabz03/bc-client:latest
+$ docker image push syabz03/bc-client:latest
+
+**Kubernetes**
+
+On Terminal, Execute the following commands
+
+Create our Namespace 
+$ kubectl create namespace bc-client
+
+Create our Persistent Volume and Persistent Volume Claim
+$ kubectl create -f bc-client_persistent_volume.yml
+$ kubectl create -f bc-client_persistent_volume_claim.yml
+$ kubectl get pv -o=jsonpath='{.spec.hostPath.path}' appdisk -n bc-client
+
+Create our Deployment Services
+$ kubectl create -f bc-client.deployment.yml 
+$ kubectl create -f bc-client.service.yml
+
+Check on the Deployed Client (Containerized) Flask App 
+$ kubectl get all -n bc-client
+
+Check out Python prints!
+$ kubectl logs pod/bc-client-64dbc59b7c-4bk76 -n bc-client
+
+e.g. $ kubectl logs pod/bc-client-64dbc59b7c-mtx5n -n bc-client
+
+Persistent Data
+$ kubectl exec -ti pod/bc-client-64dbc59b7c-mtx5n -n bc-client -- ls -la ../app-data
+
+Describe
+$ kubectl describe pod/bc-client-64dbc59b7c-mtx5n -n bc-client
+
+Kill the deployment
+kubectl delete --all pods -n bc-client
+kubectl delete --all deployments -n bc-client
+kubectl delete --all services -n bc-client
+
+Remove Persistent Volume & Persistent Volume Claim
+kubectl delete persistentvolumeclaim/appclaim -n bc-client
+kubectl delete persistentvolume/appdisk -n bc-client --grace-period=0 --force

@@ -23,7 +23,7 @@ invalid_btn.addEventListener("click", function () {
 // This function will submit a POST request to the backend codes and execute the function invalidate_blockchain()
 function invalidateBC() {
   // Which function to be executed is through the fetch and path to the function
-  fetch('http://127.0.0.1:5000/invalidatebc',{
+  fetch('http://127.0.0.1:4444/invalidatebc',{
     method: 'POST',
     headers: {
       'Content-type': 'application/json; charset=UTF-8',
